@@ -3,8 +3,9 @@ import sys
 import queue
 import threading
 from typing import Generator, Any
-from crewai import Agent, Task, Crew, Process, LLM
+from crewai import Agent, Task, Crew, Process  # Removed LLM
 from crewai_tools import TavilySearchTool
+from langchain_groq import ChatGroq  # Added stable LangChain wrapper
 from dotenv import load_dotenv
 from app.tools.graph_tool import upsert_graph_relationship, retrieve_knowledge
 
@@ -25,7 +26,6 @@ class CrewOutputCapture:
     def get_logs(self) -> Generator[str, None, None]:
         while not self._stop_event.is_set() or not self.queue.empty():
             try:
-                # Use a small timeout to allow checking the stop event
                 log = self.queue.get(timeout=0.1)
                 yield log
             except queue.Empty:
@@ -36,9 +36,10 @@ class CrewOutputCapture:
 
 class AstraCrew:
     def __init__(self):
-        self.llm = LLM(
-            model="groq/llama-3.3-70b-versatile",
-            api_key=os.getenv("GROQ_API_KEY"),
+        # Using ChatGroq for 2026 stability and to fix the Render ImportError
+        self.llm = ChatGroq(
+            model_name="llama-3.3-70b-versatile",
+            groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1
         )
         self.search_tool = TavilySearchTool()
@@ -57,7 +58,8 @@ class AstraCrew:
             backstory=backstory,
             llm=self.llm,
             tools=[upsert_graph_relationship, retrieve_knowledge, self.search_tool],
-            verbose=True
+            verbose=True,
+            allow_delegation=False # Keeps the agent focused on the task
         )
 
     def critic(self, history: str = "") -> Agent:
@@ -70,7 +72,8 @@ class AstraCrew:
             goal="Verify the accuracy of the research on {topic}",
             backstory=backstory,
             llm=self.llm,
-            verbose=True
+            verbose=True,
+            allow_delegation=False
         )
 
     def research_task(self, topic: str, history: str = "") -> Task:
@@ -102,14 +105,18 @@ class AstraCrew:
 
         def run_kickoff():
             try:
+                # Re-initializing agents inside the thread to ensure fresh LLM state
+                agents = [self.researcher(history), self.critic(history)]
+                tasks = [self.research_task(topic, history), self.review_task(topic, history)]
+                
                 astra_crew = Crew(
-                    agents=[self.researcher(history), self.critic(history)],
-                    tasks=[self.research_task(topic, history), self.review_task(topic, history)],
+                    agents=agents,
+                    tasks=tasks,
                     process=Process.sequential,
                     verbose=True
                 )
+                
                 result = astra_crew.kickoff(inputs={"topic": topic, "history": history})
-                # Signal the end of processing by sending the final result with a prefix
                 capture.write(f"__FINAL_RESULT__:{result}")
             except Exception as e:
                 capture.write(f"[ERROR]: {str(e)}")

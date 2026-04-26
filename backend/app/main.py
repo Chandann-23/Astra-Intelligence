@@ -1,11 +1,15 @@
 import uvicorn
 import os
 import json
+from crewai import Task, Crew, Process
+from langchain_groq import ChatGroq
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
+
+# Absolute imports based on your backend/app structure
 from app.crew.agents import AstraCrew
 from app.tools.graph_tool import neo4j_manager
 
@@ -13,9 +17,10 @@ load_dotenv()
 
 app = FastAPI(title="Astra API")
 
-# CORS setup for Vercel + Local Dev
+# --- CORS CONFIGURATION ---
+# In production, set FRONTEND_URL in Render to your Vercel domain
 ALLOWED_ORIGINS = [
-    os.getenv("FRONTEND_URL", "*"), # Set FRONTEND_URL in Render to your Vercel URL
+    os.getenv("FRONTEND_URL", "*"), 
     "http://localhost:3000",
 ]
 
@@ -27,14 +32,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/health")
-async def health_check():
-    """
-    Health check endpoint for Render deployment.
-    """
-    return {"status": "healthy"}
-
-# Request model for better validation
+# --- MODELS ---
 class ChatMessage(BaseModel):
     role: str
     content: str
@@ -43,50 +41,52 @@ class AnalysisRequest(BaseModel):
     topic: str
     history: list[ChatMessage] = []
 
+# --- ENDPOINTS ---
+
+@app.get("/health")
+async def health_check():
+    """Health check for Render monitoring."""
+    return {"status": "healthy", "environment": "production"}
+
 @app.get("/")
 async def root():
-    return {"status": "online", "message": "Astra Intelligence Engine is Live"}
-
-@app.post("/analyze")
-async def analyze_topic(request: AnalysisRequest):
-    """
-    Standard endpoint (Non-streaming)
-    """
-    try:
-        from app.crew.agents import AstraCrew as OldAstraCrew
-        # Note: We'd need to keep the old kickoff or adapt this
-        # For simplicity in this architectural shift, we recommend using /stream
-        raise HTTPException(status_code=400, detail="Please use the /stream endpoint for real-time analysis.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "status": "online", 
+        "message": "Astra Intelligence Engine is Live",
+        "version": "2026.1.0"
+    }
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):
     """
-    Streaming endpoint using POST to accept chat history
+    Primary streaming endpoint for real-time Agentic Research.
     """
-    # Convert history list to a string format for the agents
+    # Convert chat history into a readable string for the agents
     history_str = "\n".join([f"{msg.role}: {msg.content}" for msg in request.history])
     
-    astra = AstraCrew()
-    
-    def event_generator():
-        for log in astra.run_crew_stream(request.topic, history_str):
-            if log.startswith("__FINAL_RESULT__:"):
-                final_result = log.replace("__FINAL_RESULT__:", "")
-                yield f"data: {json.dumps({'type': 'result', 'content': final_result})}\n\n"
-            elif log.startswith("[ERROR]"):
-                yield f"data: {json.dumps({'type': 'error', 'content': log})}\n\n"
-            else:
-                yield f"data: {json.dumps({'type': 'log', 'content': log})}\n\n"
+    try:
+        # AstraCrew handles the LLM initialization internally via ChatGroq
+        astra = AstraCrew()
+        
+        def event_generator():
+            # astra.run_crew_stream should handle the Crew logic and yield strings
+            for log in astra.run_crew_stream(request.topic, history_str):
+                if log.startswith("__FINAL_RESULT__:"):
+                    final_result = log.replace("__FINAL_RESULT__:", "")
+                    yield f"data: {json.dumps({'type': 'result', 'content': final_result})}\n\n"
+                elif log.startswith("[ERROR]"):
+                    yield f"data: {json.dumps({'type': 'error', 'content': log})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'type': 'log', 'content': log})}\n\n"
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Stream Initialization Failed: {str(e)}")
 
 @app.get("/graph_data")
 async def get_graph_data():
-    """
-    Returns the full knowledge graph in D3-compatible format.
-    """
+    """Returns Knowledge Graph data for the D3.js frontend."""
     try:
         data = neo4j_manager.get_all_data()
         return data
@@ -95,9 +95,7 @@ async def get_graph_data():
 
 @app.post("/clear_graph")
 async def clear_graph():
-    """
-    Clears all nodes and relationships from the Neo4j graph.
-    """
+    """Resets the Neo4j Cloud Instance."""
     try:
         with neo4j_manager.driver.session() as session:
             session.run("MATCH (n) DETACH DELETE n")
@@ -105,6 +103,8 @@ async def clear_graph():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# --- RENDER ENTRY POINT ---
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
+    # Render provides the PORT via environment variable
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port)
