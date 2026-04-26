@@ -18,3 +18,4 @@ A production-ready Full-Stack Agentic AI project.
    - `cd frontend`
    - `npm install`
    - `npm run dev`
+.
