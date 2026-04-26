@@ -3,9 +3,10 @@ import sys
 import queue
 import threading
 from typing import Generator, Any
-from crewai import Agent, Task, Crew, Process  # Removed LLM
-from crewai_tools.tools.tavily_search_tool.tavily_search_tool import TavilySearchTool
-from langchain_groq import ChatGroq  # Added stable LangChain wrapper
+from crewai import Agent, Task, Crew, Process
+# ✅ Use the LangChain version of Tavily (Standard for 2026)
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 from app.tools.graph_tool import upsert_graph_relationship, retrieve_knowledge
 
@@ -41,8 +42,8 @@ class AstraCrew:
             groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1
         )
-        # ✅ Use the results tool here
-        self.search_tool = TavilySearchResults()
+        # ✅ Initialize the tool here
+        self.search_tool = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
 
     def researcher(self, history: str = "") -> Agent:
         backstory = f"""You are a 2026 researcher. If the user asks for anything related 
@@ -52,14 +53,16 @@ class AstraCrew:
         if history:
             backstory += f"\n\nPrevious conversation context:\n{history}"
             
+        
+        # ... (Rest of your agent code is fine) ...
         return Agent(
             role="Senior Research Analyst",
-            goal="Research {topic} AND save all key entities and relationships to the knowledge graph.",
-            backstory=backstory,
+            goal="Research {topic} AND save findings to the knowledge graph.",
+            backstory="...",
             llm=self.llm,
             tools=[upsert_graph_relationship, retrieve_knowledge, self.search_tool],
             verbose=True,
-            allow_delegation=False # Keeps the agent focused on the task
+            allow_delegation=False
         )
 
     def critic(self, history: str = "") -> Agent:

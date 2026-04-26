@@ -1,9 +1,9 @@
 fastapi
 uvicorn
 crewai==0.28.8
-crewai-tools
 langchain-groq
+langchain-community
 python-dotenv
 neo4j
 sentence-transformers
-pydantic<3.0.0,>=2.0.0
+tavily-python
