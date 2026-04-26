@@ -4,7 +4,7 @@ import queue
 import threading
 from typing import Generator, Any
 from crewai import Agent, Task, Crew, Process  # Removed LLM
-from crewai_tools import TavilySearchTool
+from crewai_tools import TavilySearchResults
 from langchain_groq import ChatGroq  # Added stable LangChain wrapper
 from dotenv import load_dotenv
 from app.tools.graph_tool import upsert_graph_relationship, retrieve_knowledge
@@ -36,13 +36,13 @@ class CrewOutputCapture:
 
 class AstraCrew:
     def __init__(self):
-        # Using ChatGroq for 2026 stability and to fix the Render ImportError
         self.llm = ChatGroq(
             model_name="llama-3.3-70b-versatile",
             groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1
         )
-        self.search_tool = TavilySearchTool()
+        # ✅ Use the results tool here
+        self.search_tool = TavilySearchResults()
 
     def researcher(self, history: str = "") -> Agent:
         backstory = f"""You are a 2026 researcher. If the user asks for anything related 
