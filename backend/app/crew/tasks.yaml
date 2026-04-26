@@ -1,0 +1,6 @@
+research_task:
+  description: >
+    Analyze the current state of Agentic AI and Neo4j integration.
+  expected_output: >
+    A comprehensive report on the benefits of using graph databases for AI agents.
+  agent: researcher

@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+crewai[tools]
+langchain-groq
+python-dotenv
+neo4j
+sentence-transformers
