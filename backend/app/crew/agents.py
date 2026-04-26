@@ -4,7 +4,7 @@ import queue
 import threading
 from typing import Generator, Any
 from crewai import Agent, Task, Crew, Process  # Removed LLM
-from crewai_tools import TavilySearchResults
+from crewai_tools.tools.tavily_search_tool.tavily_search_tool import TavilySearchTool
 from langchain_groq import ChatGroq  # Added stable LangChain wrapper
 from dotenv import load_dotenv
 from app.tools.graph_tool import upsert_graph_relationship, retrieve_knowledge
