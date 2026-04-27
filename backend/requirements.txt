@@ -1,4 +1,3 @@
---extra-index-url https://download.pytorch.org/whl/cpu
 fastapi
 uvicorn
 gunicorn
@@ -8,7 +7,5 @@ langchain-groq
 langchain-community
 python-dotenv
 neo4j
-torch==2.2.1+cpu
-torchvision==0.17.1+cpu
-sentence-transformers==2.2.2
 tavily-python
+requests

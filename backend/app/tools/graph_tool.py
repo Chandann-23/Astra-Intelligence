@@ -2,6 +2,7 @@ from langchain.tools import tool
 from neo4j import GraphDatabase
 import os
 import re
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,9 +15,8 @@ class Neo4jManager:
         self.user = os.getenv("NEO4J_USER", "neo4j")
         self.password = os.getenv("NEO4J_PASSWORD", "password123")
         self._driver = None
-        self._model = None
         self._index_initialized = False
-        print("Neo4jManager initialized (Lazy Mode).")
+        print("Neo4jManager initialized (HF API Mode).")
 
     @property
     def driver(self):
@@ -31,17 +31,27 @@ class Neo4jManager:
                 print(f"CRITICAL: Could not initialize Neo4j driver for {self.uri}: {e}")
         return self._driver
 
-    @property
-    def model(self):
-        """Lazy loader for SentenceTransformer to save RAM."""
-        if self._model is None:
-            try:
-                from sentence_transformers import SentenceTransformer
-                print("Loading SentenceTransformer model...")
-                self._model = SentenceTransformer('all-MiniLM-L6-v2')
-            except Exception as e:
-                print(f"ERROR: Failed to load SentenceTransformer: {e}")
-        return self._model
+    def get_embedding(self, text):
+        """
+        Uses Hugging Face's FREE Inference API to get embeddings.
+        No RAM usage, no heavy libraries, 100% reliable.
+        """
+        API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
+        headers = {"Authorization": f"Bearer {os.getenv('HF_TOKEN')}"}
+        
+        try:
+            response = requests.post(API_URL, headers=headers, json={"inputs": text}, timeout=10)
+            result = response.json()
+            
+            # Handle potential API errors or loading states
+            if isinstance(result, dict) and "error" in result:
+                print(f"HF API Error: {result['error']}")
+                return [0.0] * 384
+                
+            return result
+        except Exception as e:
+            print(f"Embedding Request Failed: {e}")
+            return [0.0] * 384
 
     def ensure_index(self):
         """Ensures the vector index is initialized once."""
@@ -100,8 +110,8 @@ class Neo4jManager:
         if not self.driver: return
         
         # Ensure dimensions match (MiniLM-L6-v2 produces 384)
-        source_embedding = self.model.encode(source_node).tolist()
-        target_embedding = self.model.encode(target_node).tolist()
+        source_embedding = self.get_embedding(source_node)
+        target_embedding = self.get_embedding(target_node)
         
         clean_rel = "".join(e for e in relationship if e.isalnum() or e == '_').upper()
         
@@ -131,7 +141,7 @@ class Neo4jManager:
         self.ensure_index()
         if not self.driver: return [], "Database offline."
         
-        query_embedding = self.model.encode(query).tolist()
+        query_embedding = self.get_embedding(query)
         
         with self.driver.session() as session:
             # Cypher for Vector Search + Neighbors + Scores for reasoning
