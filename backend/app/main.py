@@ -24,19 +24,17 @@ from fastapi.middleware.cors import CORSMiddleware
 # Get the frontend URL from env, default to * for dev
 frontend_url = os.getenv("FRONTEND_URL", "*")
 
-ALLOWED_ORIGINS = [
-    "*", 
-    frontend_url,
+origins = [
     "http://localhost:3000",
-    "https://astra-intelligence-eta.vercel.app", # Hardcode it as a backup
+    "https://astra-intelligence-eta.vercel.app",  # Your exact Vercel URL
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows GET, POST, OPTIONS, etc.
+    allow_headers=["*"],  # Allows all headers
 )
 
 
