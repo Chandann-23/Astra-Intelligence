@@ -1,15 +1,14 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 fastapi
 uvicorn
 gunicorn
-crewai>=0.100.0
+crewai==1.14.3
 crewai-tools
-langchain
 langchain-groq
 langchain-community
 python-dotenv
 neo4j
-sentence-transformers
+torch==2.2.1+cpu
+torchvision==0.17.1+cpu
+sentence-transformers==2.2.2
 tavily-python
-pydantic>=2.11.0,<3.0.0
-litellm
-tiktoken
