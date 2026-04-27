@@ -104,6 +104,9 @@ async def clear_graph():
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- RENDER ENTRY POINT ---
+# Recommended Start Command for Render:
+# gunicorn -w 1 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:$PORT --timeout 120
+
 if __name__ == "__main__":
     # Render provides the PORT via environment variable
     port = int(os.environ.get("PORT", 10000))

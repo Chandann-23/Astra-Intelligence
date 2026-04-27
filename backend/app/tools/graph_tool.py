@@ -3,7 +3,6 @@ from neo4j import GraphDatabase
 import os
 import re
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
@@ -15,19 +14,25 @@ class Neo4jManager:
         self.user = os.getenv("NEO4J_USER", "neo4j")
         self.password = os.getenv("NEO4J_PASSWORD", "password123")
         self.driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
-        
-        # Initialize Embedder (using all-MiniLM-L6-v2)
-        # Dimensions: 384
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self._model = None
         
         # Initialize the vector index
         self.create_vector_index()
         
         # Integrity Check
         if self.verify_index():
-            print("SUCCESS: Vector Index 'concept_embeddings' is ONLINE and 384-dim embedder is READY.")
+            print("SUCCESS: Vector Index 'concept_embeddings' is ONLINE.")
         else:
             print("WARNING: Vector Index 'concept_embeddings' initialization in progress or failed.")
+
+    @property
+    def model(self):
+        """Lazy loader for SentenceTransformer to save RAM."""
+        if self._model is None:
+            from sentence_transformers import SentenceTransformer
+            print("Loading SentenceTransformer model...")
+            self._model = SentenceTransformer('all-MiniLM-L6-v2')
+        return self._model
 
     def close(self):
         self.driver.close()
