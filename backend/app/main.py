@@ -20,7 +20,8 @@ app = FastAPI(title="Astra API")
 # --- CORS CONFIGURATION ---
 # In production, set FRONTEND_URL in Render to your Vercel domain
 ALLOWED_ORIGINS = [
-    os.getenv("FRONTEND_URL", "*"), 
+    "*",
+    os.getenv("FRONTEND_URL", ""), 
     "http://localhost:3000",
 ]
 
