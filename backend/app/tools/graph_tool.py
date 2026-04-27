@@ -13,31 +13,53 @@ class Neo4jManager:
         self.uri = os.getenv("NEO4J_URI", "neo4j+s://localhost:7687")
         self.user = os.getenv("NEO4J_USER", "neo4j")
         self.password = os.getenv("NEO4J_PASSWORD", "password123")
-        self.driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
+        self._driver = None
         self._model = None
-        
-        # Initialize the vector index
-        self.create_vector_index()
-        
-        # Integrity Check
-        if self.verify_index():
-            print("SUCCESS: Vector Index 'concept_embeddings' is ONLINE.")
-        else:
-            print("WARNING: Vector Index 'concept_embeddings' initialization in progress or failed.")
+        self._index_initialized = False
+        print("Neo4jManager initialized (Lazy Mode).")
+
+    @property
+    def driver(self):
+        """Lazy loader for Neo4j driver to prevent blocking at startup."""
+        if self._driver is None:
+            try:
+                # We only create the driver instance here. 
+                # We do NOT call verify_connectivity() as it's a blocking network call 
+                # that can cause Render port timeouts during startup.
+                self._driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
+            except Exception as e:
+                print(f"CRITICAL: Could not initialize Neo4j driver for {self.uri}: {e}")
+        return self._driver
 
     @property
     def model(self):
         """Lazy loader for SentenceTransformer to save RAM."""
         if self._model is None:
-            from sentence_transformers import SentenceTransformer
-            print("Loading SentenceTransformer model...")
-            self._model = SentenceTransformer('all-MiniLM-L6-v2')
+            try:
+                from sentence_transformers import SentenceTransformer
+                print("Loading SentenceTransformer model...")
+                self._model = SentenceTransformer('all-MiniLM-L6-v2')
+            except Exception as e:
+                print(f"ERROR: Failed to load SentenceTransformer: {e}")
         return self._model
 
+    def ensure_index(self):
+        """Ensures the vector index is initialized once."""
+        if not self._index_initialized and self.driver:
+            try:
+                self.create_vector_index()
+                if self.verify_index():
+                    print("SUCCESS: Vector Index 'concept_embeddings' is ONLINE.")
+                    self._index_initialized = True
+            except Exception as e:
+                print(f"WARNING: Index initialization deferred: {e}")
+
     def close(self):
-        self.driver.close()
+        if self._driver:
+            self._driver.close()
 
     def create_vector_index(self):
+        if not self.driver: return
         with self.driver.session() as session:
             # 2026 syntax for vector index
             query = """
@@ -61,6 +83,7 @@ class Neo4jManager:
         """
         Confirms the concept_embeddings index is ONLINE.
         """
+        if not self.driver: return False
         with self.driver.session() as session:
             query = "SHOW INDEXES YIELD name, type, state WHERE name = 'concept_embeddings'"
             result = session.run(query)
@@ -73,6 +96,9 @@ class Neo4jManager:
         """
         Creates or updates a relationship between two nodes with ON CREATE embedding logic.
         """
+        self.ensure_index()
+        if not self.driver: return
+        
         # Ensure dimensions match (MiniLM-L6-v2 produces 384)
         source_embedding = self.model.encode(source_node).tolist()
         target_embedding = self.model.encode(target_node).tolist()
@@ -102,6 +128,9 @@ class Neo4jManager:
         """
         Performs a Vector Similarity Search in Neo4j and retrieves neighbors with reasoning.
         """
+        self.ensure_index()
+        if not self.driver: return [], "Database offline."
+        
         query_embedding = self.model.encode(query).tolist()
         
         with self.driver.session() as session:
@@ -136,6 +165,7 @@ class Neo4jManager:
         """
         Retrieves all nodes and relationships for visualization.
         """
+        if not self.driver: return {"nodes": [], "links": []}
         with self.driver.session() as session:
             query = (
                 "MATCH (n:Concept)-[r]->(m:Concept) "
