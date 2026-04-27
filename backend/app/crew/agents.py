@@ -8,7 +8,7 @@ from crewai import Agent, Task, Crew, Process
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
-from ..tools.graph_tool import upsert_graph_relationship, retrieve_knowledge
+from app.tools.graph_tool import upsert_graph_relationship, retrieve_knowledge
 
 load_dotenv()
 

@@ -3,6 +3,7 @@ uvicorn
 gunicorn
 crewai==1.14.3
 crewai-tools
+langchain
 langchain-groq
 langchain-community
 python-dotenv

@@ -10,8 +10,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 # Absolute imports based on your backend/app structure
-from .crew.agents import AstraCrew
-from .tools.graph_tool import neo4j_manager
+from app.crew.agents import AstraCrew
+from app.tools.graph_tool import neo4j_manager
 
 load_dotenv()
 
