@@ -1,7 +1,7 @@
+from langchain.tools import tool
+from neo4j import GraphDatabase
 import os
 import re
-from neo4j import GraphDatabase
-from crewai.tools import tool
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 

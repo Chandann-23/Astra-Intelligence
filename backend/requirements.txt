@@ -1,9 +1,16 @@
 fastapi
 uvicorn
-crewai==0.28.8
+crewai==1.14.3
+crewai-tools
+langchain
 langchain-groq
 langchain-community
 python-dotenv
 neo4j
 sentence-transformers
 tavily-python
+pydantic==2.12.5
+pydantic-core==2.33.2
+litellm==1.83.14
+tiktoken==0.8.0
+gunicorn

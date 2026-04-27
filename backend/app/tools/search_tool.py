@@ -1,5 +1,5 @@
 import os
-from crewai.tools import tool
+from langchain.tools import tool
 from tavily import TavilyClient
 from dotenv import load_dotenv
 
