@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+gunicorn
 crewai==1.14.3
 crewai-tools
 langchain
@@ -9,8 +10,4 @@ python-dotenv
 neo4j
 sentence-transformers
 tavily-python
-pydantic>=2.11.9,<2.12.0
-pydantic-core==2.33.2
-litellm==1.83.14
-tiktoken==0.12.0
-gunicorn
+tiktoken
