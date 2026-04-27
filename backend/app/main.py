@@ -18,11 +18,17 @@ load_dotenv()
 app = FastAPI(title="Astra API")
 
 # --- CORS CONFIGURATION ---
-# In production, set FRONTEND_URL in Render to your Vercel domain
+import os
+from fastapi.middleware.cors import CORSMiddleware
+
+# Get the frontend URL from env, default to * for dev
+frontend_url = os.getenv("FRONTEND_URL", "*")
+
 ALLOWED_ORIGINS = [
-    "*",
-    os.getenv("FRONTEND_URL", ""), 
+    "*", 
+    frontend_url,
     "http://localhost:3000",
+    "https://astra-intelligence-eta.vercel.app", # Hardcode it as a backup
 ]
 
 app.add_middleware(
@@ -32,6 +38,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # --- MODELS ---
 class ChatMessage(BaseModel):
