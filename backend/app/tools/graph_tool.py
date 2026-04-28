@@ -1,4 +1,5 @@
 from langchain.tools import tool
+from crewai.tools import tool as crewai_tool
 from neo4j import GraphDatabase
 import os
 import re
@@ -203,6 +204,31 @@ class Neo4jManager:
                 "nodes": [{"id": name, "name": name} for name in nodes],
                 "links": links
             }
+
+    @crewai_tool("neo4j_tool")
+    def tool(self, query: str) -> str:
+        """
+        Useful for saving technical concepts and relationships to the 
+        knowledge graph or retrieving existing technical data.
+        """
+        # Logic to decide if we are writing or reading based on query
+        # For now, let's point it to your main upsert/logic function
+        try:
+            # Try to parse the query to extract source, relationship, target
+            # If it looks like a relationship query, use upsert
+            if " -> " in query or " relates to " in query or " uses " in query:
+                # This is a simple heuristic - in production you'd want more sophisticated parsing
+                return self.upsert_relationship(query, "relates_to", query)
+            else:
+                # Otherwise, treat as a knowledge retrieval query
+                results, reasoning = self.vector_search(query)
+                if not results:
+                    return f"No existing knowledge found.\n{reasoning}"
+                
+                knowledge_string = "\n".join(results)
+                return f"Existing Knowledge Found:\n{knowledge_string}\n\n{reasoning}"
+        except Exception as e:
+            return f"Tool Error: {str(e)}"
 
 # Global instance for the tool to use
 neo4j_manager = Neo4jManager()
