@@ -2,13 +2,15 @@ import os
 import sys
 import queue
 import threading
-from typing import Generator, Any
+import json
+from typing import Generator, Any, List
 from crewai import Agent, Task, Crew, Process
-# ✅ Use the LangChain version of Tavily (Standard for 2026)
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
-from app.tools.graph_tool import upsert_graph_relationship, retrieve_knowledge
+
+# Ensure these imports match your actual file structure
+from app.tools.graph_tool import neo4j_manager
 
 load_dotenv()
 
@@ -19,7 +21,9 @@ class CrewOutputCapture:
 
     def write(self, data):
         if data and data.strip():
-            self.queue.put(data)
+            # Clean ANSI escape codes if they appear in logs
+            clean_data = data.replace('\x1b', '').replace('[32m', '').replace('[0m', '')
+            self.queue.put(clean_data)
 
     def flush(self):
         pass
@@ -37,36 +41,41 @@ class CrewOutputCapture:
 
 class AstraCrew:
     def __init__(self):
+        # Initialize the LLM
         self.llm = ChatGroq(
-            model_name="llama-3.3-70b-versatile",
-            groq_api_key=os.getenv("GROQ_API_KEY"),
+            model="llama-3.3-70b-versatile",
+            api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1
         )
-        # ✅ Initialize the tool here
+        
+        # Initialize the Search Tool
+        # We define it here to ensure it's available for the researcher agent
         self.search_tool = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
 
     def researcher(self, history: str = "") -> Agent:
-        backstory = f"""You are a 2026 researcher. If the user asks for anything related 
+        backstory = f"""You are a 2026 Senior Research Analyst. If the user asks for anything related 
             to 2025 or 2026, or if the information in the Knowledge Graph is outdated, 
             you MUST use the Tavily Search tool to find the most current facts.
-            You ALWAYS use your 'graph_tool' to record every technical concept you find."""
+            You ALWAYS use your 'neo4j_tool' to record every technical concept you find."""
+        
         if history:
             backstory += f"\n\nPrevious conversation context:\n{history}"
             
-        
-        # ... (Rest of your agent code is fine) ...
         return Agent(
             role="Senior Research Analyst",
-            goal="Research {topic} AND save findings to the knowledge graph.",
-            backstory="...",
+            goal="Research {topic} and save findings to the knowledge graph using neo4j_tool.",
+            backstory=backstory,
             llm=self.llm,
-            tools=[upsert_graph_relationship, retrieve_knowledge, self.search_tool],
+            # We pass the neo4j_manager.tool (from your graph_tool.py) 
+            # and the search_tool instance
+            tools=[neo4j_manager.tool, self.search_tool],
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
+            memory=True
         )
 
     def critic(self, history: str = "") -> Agent:
-        backstory = "Expert at finding logical gaps."
+        backstory = "You are a Quality Lead, expert at finding logical gaps and verifying data."
         if history:
             backstory += f"\n\nPrevious conversation context:\n{history}"
 
@@ -80,24 +89,16 @@ class AstraCrew:
         )
 
     def research_task(self, topic: str, history: str = "") -> Task:
-        description = f"Analyze the current state and future trajectory of {topic}."
-        if history:
-            description += f" Consider the previous conversation context provided in your backstory."
-            
         return Task(
-            description=description,
-            expected_output="A detailed, multi-section report with technical insights and strategic recommendations.",
+            description=f"Analyze the current state and future trajectory of {topic}. Record technical relationships in the graph.",
+            expected_output="A detailed report with technical insights and strategic recommendations.",
             agent=self.researcher(history)
         )
 
     def review_task(self, topic: str, history: str = "") -> Task:
-        description = f"Review the research report on {topic}. Check for factual errors and ensure all logical connections are sound."
-        if history:
-            description += f" Ensure the review aligns with the previous conversation context."
-
         return Task(
-            description=description,
-            expected_output="A polished, verified, and enhanced final report that corrected any initial errors.",
+            description=f"Review the research report on {topic}. Check for factual errors and logical consistency.",
+            expected_output="A polished, verified final report.",
             agent=self.critic(history)
         )
 
@@ -108,19 +109,25 @@ class AstraCrew:
 
         def run_kickoff():
             try:
-                # Re-initializing agents inside the thread to ensure fresh LLM state
-                agents = [self.researcher(history), self.critic(history)]
-                tasks = [self.research_task(topic, history), self.review_task(topic, history)]
+                # Use local variables for agents/tasks within the thread
+                research_agent = self.researcher(history)
+                critic_agent = self.critic(history)
+                
+                t1 = self.research_task(topic, history)
+                t2 = self.review_task(topic, history)
                 
                 astra_crew = Crew(
-                    agents=agents,
-                    tasks=tasks,
+                    agents=[research_agent, critic_agent],
+                    tasks=[t1, t2],
                     process=Process.sequential,
                     verbose=True
                 )
                 
+                # Kickoff the crew process
                 result = astra_crew.kickoff(inputs={"topic": topic, "history": history})
-                capture.write(f"__FINAL_RESULT__:{result}")
+                
+                # Format result correctly for the generator
+                capture.write(f"__FINAL_RESULT__:{str(result)}")
             except Exception as e:
                 capture.write(f"[ERROR]: {str(e)}")
             finally:
