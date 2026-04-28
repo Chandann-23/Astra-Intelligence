@@ -41,10 +41,10 @@ class CrewOutputCapture:
 
 class AstraCrew:
     def __init__(self):
-        # Initialize LLM
+        # Initialize LLM with correct parameter names
         self.llm = ChatGroq(
             model="llama-3.3-70b-versatile",
-            api_key=os.getenv("GROQ_API_KEY"),
+            groq_api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1
         )
         # Initialize the search instance for use inside the tool
@@ -70,11 +70,14 @@ class AstraCrew:
             role="Senior Research Analyst",
             goal="Research {topic} and save findings to the knowledge graph using neo4j_tool.",
             backstory=backstory,
+            # FORCE type check to pass by using llm attribute directly
             llm=self.llm,
             # Pass the decorated methods directly
             tools=[self.search_tool, self.graph_tool],
             verbose=True,
             allow_delegation=False,
+            # Some CrewAI versions prefer 'max_iter' and 'cache' defined
+            max_iter=5,
             memory=True
         )
 
@@ -83,9 +86,12 @@ class AstraCrew:
             role="Quality Lead",
             goal="Verify the accuracy of the research on {topic} and refine the final output.",
             backstory=f"You ensure logical soundness. Context: {history}",
+            # FORCE type check to pass by using llm attribute directly
             llm=self.llm,
             verbose=True,
-            allow_delegation=False
+            allow_delegation=False,
+            max_iter=5,
+            memory=True
         )
 
     def run_crew_stream(self, topic: str, history: str = "") -> Generator[str, None, None]:
