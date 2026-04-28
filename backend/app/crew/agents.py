@@ -5,9 +5,8 @@ import threading
 import json
 from typing import Generator
 from crewai import Agent, Task, Crew, Process
-from crewai.tools import tool  # ✅ Use the decorator (most stable)
+from crewai.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 
 # Absolute import relative to /backend root
@@ -16,12 +15,14 @@ from app.tools.graph_tool import neo4j_manager
 load_dotenv()
 
 class CrewOutputCapture:
+    """Captures stdout to stream agent 'thought' logs to the frontend."""
     def __init__(self):
         self.queue = queue.Queue()
         self._stop_event = threading.Event()
 
     def write(self, data):
         if data and data.strip():
+            # Clean ANSI escape codes for the UI
             clean_data = data.replace('\x1b', '').replace('[32m', '').replace('[0m', '')
             self.queue.put(clean_data)
 
@@ -41,19 +42,16 @@ class CrewOutputCapture:
 
 class AstraCrew:
     def __init__(self):
-        # Initialize LLM with correct parameter names
-        self.llm = ChatGroq(
-            model="llama-3.3-70b-versatile",
-            groq_api_key=os.getenv("GROQ_API_KEY"),
-            temperature=0.1
-        )
-        # Initialize the search instance for use inside the tool
+        # ✅ STRING-BASED LLM: This bypasses Pydantic validation errors.
+        # CrewAI will look for 'GROQ_API_KEY' in your Environment Variables automatically.
+        self.llm_string = "groq/llama-3.3-70b-versatile"
+        
+        # Initialize the search instance for the tool logic
         self.tavily = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
 
     @tool("tavily_search")
     def search_tool(self, query: str):
         """Search the internet for current facts, 2026 news, and technical data."""
-        # We manually call the .run() method of the LangChain tool
         return self.tavily.run(query)
 
     @tool("neo4j_tool")
@@ -62,7 +60,7 @@ class AstraCrew:
         return neo4j_manager.upsert_graph_relationship(query)
 
     def researcher(self, history: str = "") -> Agent:
-        backstory = "You are a 2026 Senior Research Analyst."
+        backstory = "You are a 2026 Senior Research Analyst specializing in deep technical analysis."
         if history:
             backstory += f"\n\nContext from previous conversation: {history}"
             
@@ -70,28 +68,25 @@ class AstraCrew:
             role="Senior Research Analyst",
             goal="Research {topic} and save findings to the knowledge graph using neo4j_tool.",
             backstory=backstory,
-            # FORCE type check to pass by using llm attribute directly
-            llm=self.llm,
-            # Pass the decorated methods directly
+            llm=self.llm_string, # ✅ Using the string identifier
             tools=[self.search_tool, self.graph_tool],
             verbose=True,
             allow_delegation=False,
-            # Some CrewAI versions prefer 'max_iter' and 'cache' defined
-            max_iter=5,
             memory=True
         )
 
     def critic(self, history: str = "") -> Agent:
+        backstory = "You are a Quality Lead ensuring all research is logically sound and factually accurate."
+        if history:
+            backstory += f"\n\nContext from previous conversation: {history}"
+
         return Agent(
             role="Quality Lead",
             goal="Verify the accuracy of the research on {topic} and refine the final output.",
-            backstory=f"You ensure logical soundness. Context: {history}",
-            # FORCE type check to pass by using llm attribute directly
-            llm=self.llm,
+            backstory=backstory,
+            llm=self.llm_string, # ✅ Using the string identifier
             verbose=True,
-            allow_delegation=False,
-            max_iter=5,
-            memory=True
+            allow_delegation=False
         )
 
     def run_crew_stream(self, topic: str, history: str = "") -> Generator[str, None, None]:
@@ -101,7 +96,7 @@ class AstraCrew:
 
         def run_kickoff():
             try:
-                # Use class methods to get fresh agent instances
+                # Initialize agents and tasks within the execution thread
                 researcher_agent = self.researcher(history)
                 critic_agent = self.critic(history)
                 
@@ -124,6 +119,7 @@ class AstraCrew:
                     verbose=True
                 )
                 
+                # Inputs for the tasks
                 result = astra_crew.kickoff(inputs={"topic": topic, "history": history})
                 capture.write(f"__FINAL_RESULT__:{str(result)}")
                 
