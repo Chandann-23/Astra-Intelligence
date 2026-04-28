@@ -21,12 +21,10 @@ app = FastAPI(title="Astra API")
 import os
 from fastapi.middleware.cors import CORSMiddleware
 
-# Get the frontend URL from env, default to * for dev
-frontend_url = os.getenv("FRONTEND_URL", "*")
-
 origins = [
     "http://localhost:3000",
     "https://astra-intelligence-eta.vercel.app",  # Your exact Vercel URL
+    "https://astra-intelligence-gamma.vercel.app",  # Additional Vercel domain
 ]
 
 app.add_middleware(
