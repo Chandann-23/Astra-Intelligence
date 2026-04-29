@@ -8,54 +8,78 @@ from crewai.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
 
+@tool("tavily_search")
+def search_tool(query: str):
+    """Search the internet for technical data or current events."""
+    # We initialize the search inside the tool to avoid 'self' issues
+    search = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
+    return search.run(query.replace("'", ""))
+
+@tool("neo4j_tool")
+def graph_tool(query: str):
+    """Save technical entities and relationships to the knowledge graph."""
+    # Use the global neo4j_manager import
+    return neo4j_manager.upsert_graph_relationship(query)
+
 class AstraCrew:
     def __init__(self):
         # String format requires the 'litellm' package we added to requirements
         self.llm = "groq/llama-3.3-70b-versatile"
-        self.tavily = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
 
-    @tool("tavily_search")
-    def search_tool(self, query: str):
-        """Search internet for technical data or current events."""
-        # Clean query of problematic characters
-        clean_query = query.replace("'", "").replace('"', "")
-        return self.tavily.run(clean_query)
-
-    @tool("neo4j_tool")
-    def graph_tool(self, query: str):
-        """Save technical concepts to the graph."""
-        return neo4j_manager.upsert_graph_relationship(query)
-
-    def run_crew_stream(self, topic, history):
+    def run_crew_stream(self, topic: str, history: str) -> Generator[str, None, None]:
         q = queue.Queue()
+        
         def run_kickoff():
             try:
-                res = Agent(role="Analyst", goal="Research {topic}", backstory="Expert", llm=self.llm, tools=[self.search_tool, self.graph_tool])
-                task = Task(
-                description=(
-                    f"1. Research {topic} deeply.\n"
-                    f"2. MANDATORY: Use the neo4j_tool to save at least 3 key technical entities "
-                    f"and their relationships to the knowledge graph."
-                ),
-                expected_output="A report and a confirmation that data was saved to Neo4j.",
-                agent=res
-            )
-                crew = Crew(agents=[res], tasks=[task], verbose=True)
-                
-                # Redirect stdout to capture agent thoughts
+                # 1. Bring back the Researcher
+                researcher = Agent(
+                    role="Lead Tech Researcher",
+                    goal=f"Perform deep-dive research on {topic}",
+                    backstory="Expert at finding obscure technical details.",
+                    llm=self.llm,
+                    tools=[search_tool, graph_tool],
+                    verbose=True
+                )
+
+                # 2. Bring back the Critic (The "Blandness" Killer)
+                critic = Agent(
+                    role="Chief Strategy Officer",
+                    goal="Transform raw research into a structured, executive report.",
+                    backstory="You specialize in introductions, critical analysis, and conclusions.",
+                    llm=self.llm,
+                    verbose=True
+                )
+
+                # 3. Force the Structure in the Task
+                t1 = Task(
+                    description=f"Research {topic} and save entities to Neo4j.",
+                    expected_output="Raw technical findings.",
+                    agent=researcher
+                )
+
+                t2 = Task(
+                    description="Review the findings. Add a hook introduction, 3 critical reasons why this matters, and a forward-looking conclusion.",
+                    expected_output="A polished, strategic report with markdown headers.",
+                    agent=critic
+                )
+
+                crew = Crew(agents=[researcher, critic], tasks=[t1, t2], verbose=True)
+
+                # Enhanced Logger to catch "Thought" for the Strategy Stream
                 class Logger:
                     def write(self, data):
-                        if data.strip(): q.put(data.replace('\x1b', '').replace('[32m', '').replace('[0m', ''))
+                        if data.strip():
+                            # We send EVERYTHING to the queue; the yield logic handles routing
+                            q.put(data)
                     def flush(self): pass
 
-                old_stdout = sys.stdout
                 sys.stdout = Logger()
                 result = crew.kickoff(inputs={"topic": topic})
-                q.put(f"__FINAL_RESULT__:{result}")
+                q.put(f"__FINAL_RESULT__:{str(result)}")
+                
             except Exception as e:
                 q.put(f"[ERROR]: {str(e)}")
             finally:
-                sys.stdout = old_stdout
                 q.put(None)
 
         threading.Thread(target=run_kickoff).start()
@@ -63,10 +87,10 @@ class AstraCrew:
             msg = q.get()
             if msg is None: break
             
-            # Logic to route messages to Strategy Stream
+            # ROUTING LOGIC
             msg_type = 'log'
-            # If message contains agent thinking patterns, send to Strategy
-            if any(key in msg for key in ["Thought:", "Action:", "Action Input:", "Observation:"]):
+            # If the log looks like internal reasoning, send to Strategy Stream
+            if any(x in msg for x in ["Thought:", "Action:", "Working Agent:"]):
                 msg_type = 'strategy'
             elif "__FINAL_RESULT__" in msg:
                 msg_type = 'result'
