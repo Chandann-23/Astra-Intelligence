@@ -29,7 +29,15 @@ class AstraCrew:
         def run_kickoff():
             try:
                 res = Agent(role="Analyst", goal="Research {topic}", backstory="Expert", llm=self.llm, tools=[self.search_tool, self.graph_tool])
-                task = Task(description=f"Analyze {topic}", expected_output="Report", agent=res)
+                task = Task(
+                description=(
+                    f"1. Research {topic} deeply.\n"
+                    f"2. MANDATORY: Use the neo4j_tool to save at least 3 key technical entities "
+                    f"and their relationships to the knowledge graph."
+                ),
+                expected_output="A report and a confirmation that data was saved to Neo4j.",
+                agent=res
+            )
                 crew = Crew(agents=[res], tasks=[task], verbose=True)
                 
                 # Redirect stdout to capture agent thoughts
@@ -52,4 +60,12 @@ class AstraCrew:
         while True:
             msg = q.get()
             if msg is None: break
-            yield f"data: {json.dumps({'type': 'log' if '__FINAL' not in msg else 'result', 'content': msg.replace('__FINAL_RESULT__:', '')})}\n\n"
+            
+            # Logic to route messages to Strategy Stream
+            msg_type = 'log'
+            if "Action:" in msg or "Thought:" in msg:
+                msg_type = 'strategy' # This targets the Strategy Stream UI component
+            elif "__FINAL_RESULT__" in msg:
+                msg_type = 'result'
+
+            yield f"data: {json.dumps({'type': msg_type, 'content': msg.replace('__FINAL_RESULT__:', '')})}\n\n"
