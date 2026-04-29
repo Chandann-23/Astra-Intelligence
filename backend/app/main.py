@@ -7,10 +7,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from app.crew.agents import AstraCrew
 
-app = FastAPI(title="Astra API")
+app = FastAPI()
 
-# NUCLEAR CORS: This is why the code is shorter. 
-# It replaces the long list of origins and fixes the "Blocked by CORS" error.
+# Allow EVERYTHING to stop CORS headaches
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,31 +23,19 @@ class AnalysisRequest(BaseModel):
     history: list = []
 
 @app.get("/health")
-async def health():
-    return {"status": "online"}
-
-@app.get("/")
-async def root():
-    return {"message": "Astra Engine Live"}
+def health(): return {"status": "online"}
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):
     try:
-        # We initialize the crew here
         astra = AstraCrew()
-        # Convert the history list to a string for the agents to read
-        history_str = str(request.history)
-        
         return StreamingResponse(
-            astra.run_crew_stream(request.topic, history_str), 
+            astra.run_crew_stream(request.topic, str(request.history)), 
             media_type="text/event-stream"
         )
     except Exception as e:
-        # This will catch any startup errors and show them in your Vercel console
-        print(f"Detailed Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    # Railway sets the PORT env variable automatically
     port = int(os.environ.get("PORT", 8080))
     uvicorn.run("app.main:app", host="0.0.0.0", port=port)
