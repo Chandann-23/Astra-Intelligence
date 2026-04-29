@@ -18,7 +18,7 @@ def search_tool(query: str):
 @tool("neo4j_tool")
 def graph_tool(query: str):
     """Save technical entities and relationships to the knowledge graph."""
-    # Use the global neo4j_manager import
+    # Use the global neo4j_manager import - Fixed self parameter issue
     return neo4j_manager.upsert_graph_relationship(query)
 
 class AstraCrew:
