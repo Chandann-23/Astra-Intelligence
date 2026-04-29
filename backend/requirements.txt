@@ -3,7 +3,8 @@ uvicorn
 gunicorn
 python-dotenv
 pydantic>=2.0.0
-crewai==1.14.3
+crewai
+langchain
 langchain-groq
 langchain-community
 tavily-python
