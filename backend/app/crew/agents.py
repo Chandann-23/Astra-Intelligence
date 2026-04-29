@@ -16,8 +16,10 @@ class AstraCrew:
 
     @tool("tavily_search")
     def search_tool(self, query: str):
-        """Search internet for 2026 facts."""
-        return self.tavily.run(query)
+        """Search internet for technical data or current events."""
+        # Clean query of problematic characters
+        clean_query = query.replace("'", "").replace('"', "")
+        return self.tavily.run(clean_query)
 
     @tool("neo4j_tool")
     def graph_tool(self, query: str):
@@ -63,8 +65,9 @@ class AstraCrew:
             
             # Logic to route messages to Strategy Stream
             msg_type = 'log'
-            if "Action:" in msg or "Thought:" in msg:
-                msg_type = 'strategy' # This targets the Strategy Stream UI component
+            # If message contains agent thinking patterns, send to Strategy
+            if any(key in msg for key in ["Thought:", "Action:", "Action Input:", "Observation:"]):
+                msg_type = 'strategy'
             elif "__FINAL_RESULT__" in msg:
                 msg_type = 'result'
 
