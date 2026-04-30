@@ -1,5 +1,4 @@
 import os
-
 from typing import Generator
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
@@ -29,7 +28,7 @@ print('API Key loaded:', bool(api_key))
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
-    model_kwargs={"version": "v1"},  # Force stable v1 API
+    version="v1",  # <--- THIS IS THE FIX. It overrides the v1beta default.
     google_api_key=api_key,
     temperature=0.7
 )
