@@ -4,8 +4,6 @@ import queue
 import threading
 import json
 from typing import Generator
-from crewai import Agent, Task, Crew, Process, LLM
-from crewai.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
 
