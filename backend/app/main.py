@@ -1,7 +1,12 @@
 import uvicorn
-print('🚀 ASTRA ENGINE STARTING...')
-
 import os
+from dotenv import load_dotenv
+
+# Load environment variables FIRST
+load_dotenv()
+print('🚀 ASTRA ENGINE STARTING...')
+print(f'DEBUG: API KEY EXISTS: {bool(os.getenv("GOOGLE_API_KEY"))}')
+
 import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware

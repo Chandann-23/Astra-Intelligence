@@ -21,13 +21,10 @@ class AgentState(TypedDict):
 
 # Phase 2: Initialize Stable Gemini 8b LLM
 # Gemini 1.5 Flash-8b offers fast iterations and stable v1 API access
-api_key = os.getenv('GOOGLE_API_KEY')
-print('Gemini API Key loaded:', bool(api_key))
-
 llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash-8b",
+    google_api_key=os.getenv('GOOGLE_API_KEY'),
     version="v1", # Forces stable v1 endpoint to bypass 404 errors
-    google_api_key=api_key,
     temperature=0.7
 )
 
