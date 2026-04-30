@@ -256,14 +256,13 @@ def upsert_graph_relationship(source: str, relationship: str, target: str, detai
         return f"Failed to update graph: {str(e)}"
 
     def execute_query(self, query, parameters=None):
-        """Generic method to execute Cypher queries, required by Lead Tech Researcher agent."""
+        """Bridge method to allow Astra Agents to persist graph entities."""
         with self.driver.session() as session:
             try:
                 result = session.run(query, parameters)
                 return [record.data() for record in result]
             except Exception as e:
-                # Log the error for SRE monitoring
-                print(f"Neo4j Execution Error: {e}")
+                print(f"SRE Alert - Graph Write Failed: {e}")
                 raise e
 
 @tool("retrieve_knowledge")
