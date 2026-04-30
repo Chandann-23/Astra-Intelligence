@@ -9,23 +9,25 @@ from crewai.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
 
-# NATIVE GOOGLE GENERATIVE AI PROVIDER
+# ABSOLUTE NO-FAIL PROTOCOL
 # This uses the official Google SDK directly, bypassing broken v1beta auto-routing
 from langchain_google_genai import ChatGoogleGenerativeAI
+from crewai import Agent, LLM
 import os
 
-# 1. Create the native LangChain object
-native_google_llm = ChatGoogleGenerativeAI(
+# This uses the official Google SDK directly, bypassing broken v1beta auto-routing
+# Ensure your GEMINI_API_KEY is correctly set in Hugging Face Secrets
+native_llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
     google_api_key=os.getenv("GEMINI_API_KEY"),
     temperature=0.7
 )
 
-# 2. Wrap it in CrewAI's LLM class to pass Pydantic validation
-# This is the "permanent solution" to fix validation errors in your screenshot
+# We wrap it in CrewAI LLM class specifically using 'base_llm'
+# This satisfies Pydantic validation while using our stable native connection
 gemini_pro_llm = LLM(
     model="gemini/gemini-1.5-flash",
-    base_llm=native_google_llm
+    base_llm=native_llm
 )
 
 # IF THE ABOVE STILL 404s, USE THIS 'NATIVE' FALLBACK:
