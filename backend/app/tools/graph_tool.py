@@ -1,5 +1,4 @@
 from langchain.tools import tool
-from crewai.tools import tool as crewai_tool
 from neo4j import GraphDatabase
 import os
 import re
@@ -205,7 +204,7 @@ class Neo4jManager:
                 "links": links
             }
 
-    @crewai_tool("neo4j_tool")
+    @tool("neo4j_tool")
     def tool(self, query: str) -> str:
         """
         Useful for saving technical concepts and relationships to the 
