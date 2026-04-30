@@ -28,14 +28,14 @@ class AnalysisRequest(BaseModel):
 def health():
     try:
         from app.tools.graph_tool import neo4j_manager
-        # Check DeepSeek API key for new LLM integration
-        deepseek_key = os.environ.get("DEEPSEEK_API_KEY")
+        # Check Gemini API key for stable 8b integration
+        gemini_key = os.environ.get("GOOGLE_API_KEY")
         
         return {
             "status": "online",
             "services": {
                 "neo4j": "connected" if (hasattr(neo4j_manager, 'driver') and neo4j_manager.driver) else "disconnected",
-                "deepseek": "configured" if deepseek_key else "missing",
+                "gemini": "configured" if gemini_key else "missing",
                 "tavily": "configured" if os.environ.get("TAVILY_API_KEY") else "missing"
             }
         }

@@ -1,9 +1,8 @@
 fastapi
 uvicorn
 python-dotenv
-# Core AI SDKs - DeepSeek V3 Integration
-openai
-langchain-openai
+# Core AI SDKs - Stable Gemini 8b Integration
+langchain-google-genai==1.0.10
 langchain==0.2.17
 langchain-community==0.2.17
 langchain-core==0.2.43
