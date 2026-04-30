@@ -11,20 +11,25 @@ from app.tools.graph_tool import neo4j_manager
 
 @tool("tavily_search")
 def search_tool(query: str):
-    """Search the web for information."""
+    """Search the web for information using Tavily."""
+    # Manually fetch key inside the function to ensure it's fresh
+    api_key = os.environ.get("TAVILY_API_KEY")
+    
+    if not api_key:
+        return "Error: TAVILY_API_KEY is missing from environment variables."
+
     try:
-        # Explicitly pull the key to ensure it's loaded
-        api_key = os.getenv("TAVILY_API_KEY")
         from tavily import TavilyClient
         client = TavilyClient(api_key=api_key)
+        # Simplify the search request
+        search_result = client.search(query=query, max_results=3)
         
-        # Execute search
-        response = client.search(query=query, max_results=5)
-        
-        # Return a clean string. Models hate raw JSON objects as tool outputs sometimes.
-        return str(response)
+        # Return only the essential content as a string
+        # Models often crash if they get a raw JSON object instead of text
+        context = "\n".join([f"Source: {r['url']}\nContent: {r['content']}" for r in search_result['results']])
+        return context
     except Exception as e:
-        return f"Tool Error: {str(e)}"
+        return f"Tavily Search failed: {str(e)}"
 
 @tool("neo4j_tool")
 def graph_tool(query: str):
