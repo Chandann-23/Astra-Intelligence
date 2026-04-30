@@ -15,7 +15,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,
+    allow_credentials=True, # Changed to True for better cookie/session handling
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -27,19 +27,15 @@ class AnalysisRequest(BaseModel):
 @app.get("/health")
 def health():
     try:
-        # Check Neo4j connection
         from app.tools.graph_tool import neo4j_manager
-        neo4j_status = "connected" if neo4j_manager.driver else "disconnected"
-        
-        # Check LLM initialization
-        gemini_status = "configured" if os.environ.get("GEMINI_API_KEY") else "missing"
+        # Check both possible key names to be safe
+        api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
         
         return {
             "status": "online",
             "services": {
-                "neo4j": neo4j_status,
-                "gemini": gemini_status,
-                "groq": "configured" if os.environ.get("GROQ_API_KEY") else "missing",
+                "neo4j": "connected" if (hasattr(neo4j_manager, 'driver') and neo4j_manager.driver) else "disconnected",
+                "gemini": "configured" if api_key else "missing",
                 "tavily": "configured" if os.environ.get("TAVILY_API_KEY") else "missing"
             }
         }
@@ -48,83 +44,73 @@ def health():
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):
-    print('DEBUG: Received research request')
+    print(f'DEBUG: Received research request for: {request.topic}')
     try:
         # Initialize state for LangGraph
         initial_state = {
             "query": request.topic,
             "research_output": "",
             "critique": "",
-            "revision_count": 0
+            "revision_count": 0,
+            "storage_result": ""
         }
         
-        # Wrap LangGraph astream in async task
         async def generate_stream():
-            # Send immediate heartbeat to keep stream alive
-            yield f"data: {json.dumps({'status': 'initializing', 'message': 'Starting research...', 'node': 'start'})}\n\n"
+            # Send immediate heartbeat
+            yield f"data: {json.dumps({'status': 'initializing', 'message': 'Astra Engine warming up...', 'node': 'start'})}\n\n"
+            
+            last_seen_state = initial_state
             
             try:
-                # Stream through LangGraph nodes
+                # Use stream instead of astream if your graph isn't fully async, 
+                # but astream is better for FastAPI.
                 async for chunk in app_graph.astream(initial_state):
-                    # Extract node name and state from chunk
-                    node_name = list(chunk.keys())[0] if chunk else "unknown"
-                    current_state = chunk[node_name] if chunk else {}
-                    
-                    # Send status update for current node
-                    status_map = {
-                        "researcher": {"status": "researching", "message": "Analyzing query and generating report...", "node": "researcher"},
-                        "critic": {"status": "critiquing", "message": "Reviewing report for depth and accuracy...", "node": "critic"},
-                        "storage": {"status": "storing", "message": "Saving research to Neo4j...", "node": "storage"}
-                    }
-                    
-                    status_update = status_map.get(node_name, {"status": "processing", "message": "Processing...", "node": node_name})
-                    
-                    # Include partial results if available
-                    if current_state.get("research_output"):
-                        status_update["partial_result"] = current_state["research_output"][:500] + "..." if len(current_state["research_output"]) > 500 else current_state["research_output"]
-                    
-                    yield f"data: {json.dumps(status_update)}\n\n"
+                    # LangGraph chunk format is {node_name: {updated_state_keys}}
+                    for node_name, node_state in chunk.items():
+                        # Update our tracker so we have the final result at the end
+                        last_seen_state.update(node_state)
+                        
+                        status_map = {
+                            "researcher": {"status": "researching", "message": "Lead Researcher generating report...", "node": "researcher"},
+                            "critic": {"status": "critiquing", "message": "Senior Critic reviewing findings...", "node": "critic"},
+                            "storage": {"status": "storing", "message": "Archiving to Neo4j Knowledge Graph...", "node": "storage"}
+                        }
+                        
+                        status_update = status_map.get(node_name, {"status": "processing", "message": f"Executing {node_name}...", "node": node_name})
+                        
+                        # Add partial result if the researcher just finished
+                        if "research_output" in node_state:
+                            content = node_state["research_output"]
+                            status_update["partial_result"] = content[:500] + "..." if len(content) > 500 else content
+                        
+                        yield f"data: {json.dumps(status_update)}\n\n"
                 
-                # Send final result
-                final_state = chunk
-                if final_state:
-                    last_node = list(final_state.keys())[0] if final_state else "storage"
-                    final_data = final_state[last_node] if final_state else {}
-                    
-                    final_response = {
-                        "status": "completed",
-                        "message": "Research analysis completed successfully",
-                        "result": final_data.get("research_output", ""),
-                        "storage_result": final_data.get("storage_result", ""),
-                        "node": "end"
-                    }
-                    
-                    yield f"data: {json.dumps(final_response)}\n\n"
+                # FINAL PACKET: Send the total accumulated state
+                final_response = {
+                    "status": "completed",
+                    "message": "Research analysis completed successfully",
+                    "result": last_seen_state.get("research_output", ""),
+                    "storage_result": last_seen_state.get("storage_result", ""),
+                    "node": "end"
+                }
+                yield f"data: {json.dumps(final_response)}\n\n"
                     
             except Exception as graph_error:
-                # Graceful error handling to prevent stream crashes
-                error_response = {
-                    "status": "error", 
-                    "message": str(graph_error),
-                    "type": "graph_execution_error",
-                    "node": "error"
-                }
-                yield f"data: {json.dumps(error_response)}\n\n"
-                return
+                print(f"GRAPH ERROR: {str(graph_error)}")
+                yield f"data: {json.dumps({'status': 'error', 'message': str(graph_error), 'node': 'error'})}\n\n"
         
         return StreamingResponse(
             generate_stream(), 
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Headers": "*"
+                "X-Accel-Buffering": "no" # Critical for Hugging Face/Nginx streaming
             }
         )
     except Exception as e:
+        print(f"SERVER ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=False)

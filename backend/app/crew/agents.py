@@ -1,37 +1,34 @@
 import os
-from typing import Generator
-from langchain_community.tools.tavily_search import TavilySearchResults
-from app.tools.graph_tool import neo4j_manager
+import json
+from typing import TypedDict, Annotated, Generator
 from dotenv import load_dotenv
+
+# LangChain / LangGraph Imports
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.graph import StateGraph, END
+from langchain_core.tools import tool
 
 # Load environment variables
 load_dotenv()
 
-# LANGGRAPH MIGRATION - STABLE V1 API
-# Migrated from CrewAI to LangGraph for better stability and control
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langgraph.graph import StateGraph, END
-from langchain_core.tools import tool
-from typing import TypedDict, Annotated
-import json
-
-# Phase 2: Define AgentState with TypedDict fields
+# Phase 2: Define AgentState
 class AgentState(TypedDict):
     query: str
     research_output: str
     critique: str
     revision_count: int
+    storage_result: str  # Added to prevent key errors in storage_node
 
-# Phase 2: Initialize ChatGoogleGenerativeAI with explicit version='v1'
+# Phase 2: Initialize ChatGoogleGenerativeAI
+# FIX: 'api_version' is the correct parameter for the 2026 SDK 
+# to force the stable v1 path and avoid the v1beta 404.
 api_key = os.getenv('GOOGLE_API_KEY')
 print('API Key loaded:', bool(api_key))
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    # This is the "Door Lock": it forces production v1 path 
-    # and ignores the beta path completely.
-    client_options={"api_version": "v1"},
+    google_api_key=api_key,
+    api_version="v1", 
     temperature=0.7
 )
 
@@ -82,7 +79,7 @@ def storage_node(state: AgentState) -> AgentState:
         from app.tools.graph_tool import neo4j_manager
         
         # Create a simple node with the research output
-        query = """
+        cypher_query = """
         CREATE (r:Research {
             query: $query,
             content: $content,
@@ -96,74 +93,73 @@ def storage_node(state: AgentState) -> AgentState:
             "content": state.get('research_output', '')
         }
         
-        result = neo4j_manager.execute_query(query, params)
-        state["storage_result"] = f"Research saved to Neo4j: {result}"
+        result = neo4j_manager.execute_query(cypher_query, params)
+        state["storage_result"] = f"Research saved to Neo4j"
         
     except Exception as e:
         state["storage_result"] = f"Storage error: {str(e)}"
     
     return state
 
-# Phase 2: Compile app_graph with flow logic
+# Phase 2: Workflow Logic
 def should_continue(state: AgentState) -> str:
     """Determine if we should continue revising or move to storage"""
     critique = state.get('critique', '')
     revision_count = state.get('revision_count', 0)
     
     # If critique says approved or we've revised twice, move to storage
-    if "APPROVED" in critique or revision_count >= 2:
+    if "APPROVED" in critique.upper() or revision_count >= 2:
         return "storage"
     else:
-        # Increment revision count and go back to researcher
+        # Increment revision count
         state["revision_count"] = revision_count + 1
         return "researcher"
 
 # Create the graph
-app_graph = StateGraph(AgentState)
+workflow = StateGraph(AgentState)
 
 # Add nodes
-app_graph.add_node("researcher", researcher_node)
-app_graph.add_node("critic", critic_node)
-app_graph.add_node("storage", storage_node)
+workflow.add_node("researcher", researcher_node)
+workflow.add_node("critic", critic_node)
+workflow.add_node("storage", storage_node)
 
 # Add edges
-app_graph.set_entry_point("researcher")
-app_graph.add_edge("researcher", "critic")
-app_graph.add_conditional_edges("critic", should_continue, {
-    "researcher": "researcher",
-    "storage": "storage"
-})
-app_graph.add_edge("storage", END)
+workflow.set_entry_point("researcher")
+workflow.add_edge("researcher", "critic")
+workflow.add_conditional_edges(
+    "critic", 
+    should_continue, 
+    {
+        "researcher": "researcher",
+        "storage": "storage"
+    }
+)
+workflow.add_edge("storage", END)
 
-# Compile the graph
-app_graph = app_graph.compile()
+# Final Compiled Graph
+app_graph = workflow.compile()
 
-# Tool definitions for LangGraph
+# Tool definitions (kept for your integration needs)
 @tool("tavily_search")
 def search_tool(query: str):
     """Search web for real-time information."""
-    import os
     from tavily import TavilyClient
-
-    api_key = os.environ.get("TAVILY_API_KEY")
-    if not api_key:
+    t_api_key = os.environ.get("TAVILY_API_KEY")
+    if not t_api_key:
         return "Error: Missing Tavily API Key."
-
     try:
-        client = TavilyClient(api_key=api_key)
+        client = TavilyClient(api_key=t_api_key)
         result = client.search(query, max_results=5)
-        return f"Search results for '{query}': {result}"
+        return f"Search results: {result}"
     except Exception as e:
         return f"Search error: {str(e)}"
 
 @tool("graph_tool")
-def graph_tool(query: str):
-    """Execute a Cypher query against the Neo4j database to save research entities."""
+def graph_tool_executor(query: str):
+    """Execute a Cypher query against the Neo4j database."""
     from app.tools.graph_tool import neo4j_manager
-    
     try:
-        # If your manager uses a generic query runner:
         result = neo4j_manager.execute_query(query) 
-        return f"Successfully executed: {result}"
+        return f"Success: {result}"
     except Exception as e:
         return f"Database Error: {str(e)}"
