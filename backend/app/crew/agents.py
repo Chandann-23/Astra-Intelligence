@@ -54,9 +54,16 @@ researcher_llm = LLM(
 )
 
 # The 'Commander' - Lower Rate Limits, very smart
-# Use this only for the final report synthesis
+# Use this only for final report synthesis
 analyzer_llm = LLM(
     model="groq/llama-3.3-70b-versatile",
+    temperature=0.5
+)
+
+# The 'Memory' - Massive context window for complex research
+# Use this for deep analysis and synthesis
+gemini_pro_llm = LLM(
+    model="gemini/gemini-1.5-pro",
     temperature=0.5
 )
 
@@ -84,7 +91,7 @@ class AstraCrew:
                     verbose=True
                 )
 
-                # 2. Analyzer uses the 70B model for the final "Brain" work
+                # 2. Analyzer uses 70B model for final "Brain" work
                 analyzer = Agent(
                     role='Chief Technical Analyst',
                     goal='Synthesize research data into a comprehensive report',
@@ -93,22 +100,41 @@ class AstraCrew:
                     verbose=True
                 )
 
-                # 3. Force the Structure in the Task
+                # 3. Memory uses Gemini Pro for deep analysis
+                memory = Agent(
+                    role='Knowledge Architect',
+                    goal='Integrate research findings with existing knowledge graph data',
+                    backstory='Expert at connecting new research with historical context using massive memory window.',
+                    llm=gemini_pro_llm,
+                    tools=[search_tool, graph_tool],
+                    max_rpm=2,  # Slow down to prevent rate limit errors
+                    max_iter=5,  # Circuit breaker: stop after 5 attempts
+                    max_execution_time=120, # Increase to 2 minutes for complex tasks
+                    verbose=True
+                )
+
+                # 3. Force Structure in Task
                 t1 = Task(
                     description=f"Research {topic} and save entities to Neo4j.",
                     expected_output="Raw technical findings.",
                     agent=researcher
                 )
-
+                
                 t2 = Task(
                     description="Review the findings. Add a hook introduction, 3 critical reasons why this matters, and a forward-looking conclusion.",
                     expected_output="A polished, strategic report with markdown headers.",
                     agent=analyzer
                 )
-
+                
+                t3 = Task(
+                    description="Integrate research findings with existing knowledge graph data using massive memory window.",
+                    expected_output="Enhanced report with historical context and connections.",
+                    agent=memory
+                )
+                
                 crew = Crew(
-                    agents=[researcher, analyzer], 
-                    tasks=[t1, t2], 
+                    agents=[researcher, analyzer, memory], 
+                    tasks=[t1, t2, t3], 
                     process=Process.sequential, 
                     verbose=True
                 )
