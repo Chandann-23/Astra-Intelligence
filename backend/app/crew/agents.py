@@ -79,8 +79,8 @@ class AstraCrew:
                     llm=self.researcher_llm,
                     tools=[search_tool, graph_tool],
                     max_rpm=3,  # SRE Tip: Self-limit to 3 requests per minute to stay safe
-                    max_iter=5,  # Limit iterations to prevent 'infinite panic'
-                    max_execution_time=60,  # Stop if it takes longer than a minute
+                    max_iter=10,             # Allow more loops for deep research
+                    max_execution_time=120, # Increase to 2 minutes for complex tasks
                     verbose=True
                 )
 
