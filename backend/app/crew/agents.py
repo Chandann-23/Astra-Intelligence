@@ -11,15 +11,20 @@ from app.tools.graph_tool import neo4j_manager
 
 @tool("tavily_search")
 def search_tool(query: str):
-    """Search the internet for technical data or current events."""
+    """Search the web for information."""
     try:
-        # We initialize the search inside the tool to avoid 'self' issues
-        search = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
-        results = search.run(query.replace("'", ""))
-        # Return a simplified version so the LLM doesn't choke on huge metadata
-        return str(results)[:2000]
+        # Explicitly pull the key to ensure it's loaded
+        api_key = os.getenv("TAVILY_API_KEY")
+        from tavily import TavilyClient
+        client = TavilyClient(api_key=api_key)
+        
+        # Execute search
+        response = client.search(query=query, max_results=5)
+        
+        # Return a clean string. Models hate raw JSON objects as tool outputs sometimes.
+        return str(response)
     except Exception as e:
-        return f"Search failed: {str(e)}"
+        return f"Tool Error: {str(e)}"
 
 @tool("neo4j_tool")
 def graph_tool(query: str):
