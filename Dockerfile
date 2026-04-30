@@ -21,7 +21,7 @@ COPY backend/ .
 ENV PORT=7860
 EXPOSE 7860
 
-# Run using uvicorn. 
+# Run using uvicorn with debug logging
 # Note: Since we copied the contents of /backend into /app, 
 # 'app.main:app' assumes there is a folder named 'app' inside 'backend'.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860", "--log-level", "debug"]

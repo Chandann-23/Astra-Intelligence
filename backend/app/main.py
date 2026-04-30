@@ -1,4 +1,6 @@
 import uvicorn
+print('🚀 ASTRA ENGINE STARTING...')
+
 import os
 import json
 from fastapi import FastAPI, HTTPException
