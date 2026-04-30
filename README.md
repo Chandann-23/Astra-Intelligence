@@ -1,3 +1,12 @@
+---
+title: Astra Backend
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # Astra
 
 A production-ready Full-Stack Agentic AI project.
