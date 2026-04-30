@@ -255,6 +255,17 @@ def upsert_graph_relationship(source: str, relationship: str, target: str, detai
     except Exception as e:
         return f"Failed to update graph: {str(e)}"
 
+    def execute_query(self, query, parameters=None):
+        """Generic method to execute Cypher queries, required by Lead Tech Researcher agent."""
+        with self.driver.session() as session:
+            try:
+                result = session.run(query, parameters)
+                return [record.data() for record in result]
+            except Exception as e:
+                # Log the error for SRE monitoring
+                print(f"Neo4j Execution Error: {e}")
+                raise e
+
 @tool("retrieve_knowledge")
 def retrieve_knowledge(query: str):
     """
