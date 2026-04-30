@@ -1,15 +1,14 @@
 fastapi
 uvicorn
 python-dotenv
-# Core AI SDKs
+# Core AI SDKs - Aligned for stability
 langchain-google-genai==1.0.10
-langchain>=0.3.0
-langchain-community>=0.3.0
-langchain-core>=0.3.0
+langchain==0.2.17
+langchain-community==0.2.17
+langchain-core==0.2.43
 # Graph Engine
-langgraph>=0.2.0
+langgraph==0.1.23
 # Database & Tools
 neo4j
 tavily-python
-# Pydantic is required for LangGraph state validation
 pydantic>=2.0.0
