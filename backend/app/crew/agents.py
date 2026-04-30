@@ -9,13 +9,17 @@ from crewai.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
 
-# The 'Memory' - Massive context window for complex research
-# Use this for deep analysis and synthesis
+# HARD-CODED STABLE CONFIGURATION
+# Explicitly set base URL to bypass library guessing logic
 gemini_pro_llm = LLM(
-    model="gemini/gemini-1.5-flash", 
+    model="gemini/gemini-1.5-flash",
     api_key=os.getenv("GEMINI_API_KEY"),
+    base_url="https://generativelanguage.googleapis.com/v1beta", # Explicitly set to base
     temperature=0.7
 )
+
+# IF THE ABOVE STILL 404s, USE THIS 'NATIVE' FALLBACK:
+# model="google/gemini-1.5-flash"
 
 @tool("tavily_search")
 def search_tool(query: str):
