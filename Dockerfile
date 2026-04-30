@@ -1,3 +1,4 @@
+# Build Trigger: Gemini Sync v1
 FROM python:3.12-slim
 
 # Install system dependencies for build (Required for CrewAI/pydantic)
