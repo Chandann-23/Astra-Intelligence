@@ -78,8 +78,8 @@ class AstraCrew:
                     backstory='Expert at high-volume data retrieval and entity extraction.',
                     llm=self.researcher_llm,
                     tools=[search_tool, graph_tool],
-                    max_rpm=3,  # SRE Tip: Self-limit to 3 requests per minute to stay safe
-                    max_iter=10,             # Allow more loops for deep research
+                    max_rpm=2,  # Slow down to prevent rate limit errors
+                    max_iter=5,  # Circuit breaker: stop after 5 attempts
                     max_execution_time=120, # Increase to 2 minutes for complex tasks
                     verbose=True
                 )
