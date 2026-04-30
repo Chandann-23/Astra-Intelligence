@@ -1,8 +1,5 @@
 import os
-import sys
-import queue
-import threading
-import json
+
 from typing import Generator
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
@@ -15,6 +12,7 @@ load_dotenv()
 # Migrated from CrewAI to LangGraph for better stability and control
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, END
+from langchain_core.tools import tool
 from typing import TypedDict, Annotated
 import json
 
@@ -139,48 +137,7 @@ app_graph.add_edge("storage", END)
 # Compile the graph
 app_graph = app_graph.compile()
 
-# IF THE ABOVE STILL 404s, USE THIS 'NATIVE' FALLBACK:
-# model="google/gemini-1.5-flash"
-
-@tool("tavily_search")
-def search_tool(query: str):
-    """Search web for real-time information."""
-    import os
-    from tavily import TavilyClient
-
-    api_key = os.environ.get("TAVILY_API_KEY")
-    if not api_key:
-        return "Error: Missing Tavily API Key."
-
-    try:
-        client = TavilyClient(api_key=api_key)
-        # We only want basic results to keep the 'thought' clean
-        search_result = client.search(query=query, search_type="web", max_results=3)
-        
-        # Extract ONLY the title and content snippets with context compression
-        cleaned_results = []
-        for r in search_result.get('results', []):
-            content = r.get('content', '')[:400] # Limit each result to 400 chars to save tokens
-            cleaned_results.append(f"Title: {r.get('title')}\nContent: {content}...")
-        
-        return "\n\n".join(cleaned_results)
-    except Exception as e:
-        return f"Tavily Search failed: {str(e)}"
-
-@tool("neo4j_tool")
-def graph_tool(query: str):
-    """Execute a Cypher query against the Neo4j database to save research entities."""
-    from app.tools.graph_tool import neo4j_manager
-    
-    try:
-        # If your manager uses a generic query runner:
-        result = neo4j_manager.execute_query(query) 
-        return f"Successfully executed: {result}"
-    except Exception as e:
-        return f"Database Error: {str(e)}"
-
-# Legacy CrewAI references removed - now using LangGraph
-
+# Tool definitions for LangGraph
 @tool("tavily_search")
 def search_tool(query: str):
     """Search web for real-time information."""
