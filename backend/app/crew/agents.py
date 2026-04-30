@@ -9,6 +9,13 @@ from crewai.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
 
+# The 'Memory' - Massive context window for complex research
+# Use this for deep analysis and synthesis
+gemini_pro_llm = LLM(
+    model="gemini/gemini-1.5-pro",
+    temperature=0.5
+)
+
 @tool("tavily_search")
 def search_tool(query: str):
     """Search web for real-time information."""
@@ -53,13 +60,6 @@ researcher_llm = gemini_pro_llm
 # The 'Commander' - Lower Rate Limits, very smart
 # Use this only for final report synthesis
 analyzer_llm = gemini_pro_llm
-
-# The 'Memory' - Massive context window for complex research
-# Use this for deep analysis and synthesis
-gemini_pro_llm = LLM(
-    model="gemini/gemini-1.5-pro",
-    temperature=0.5
-)
 
 class AstraCrew:
     def __init__(self):
