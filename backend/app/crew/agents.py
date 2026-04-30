@@ -71,7 +71,7 @@ class AstraCrew:
         
         def run_kickoff():
             try:
-                # 1. Researcher uses the 8B model to save tokens
+                # 1. Researcher uses 8B model to save tokens
                 researcher = Agent(
                     role='Lead Tech Researcher',
                     goal='Search the web and extract key technical entities',
@@ -79,6 +79,8 @@ class AstraCrew:
                     llm=self.researcher_llm,
                     tools=[search_tool, graph_tool],
                     max_rpm=3,  # SRE Tip: Self-limit to 3 requests per minute to stay safe
+                    max_iter=5,  # Limit iterations to prevent 'infinite panic'
+                    max_execution_time=60,  # Stop if it takes longer than a minute
                     verbose=True
                 )
 
