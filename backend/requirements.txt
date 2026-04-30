@@ -1,13 +1,6 @@
 fastapi
 uvicorn
-gunicorn
-python-dotenv
-pydantic>=2.0.0
-crewai[google-genai]==0.30.1
-google-generativeai==0.5.2
-langchain
-langchain-groq
-langchain-community
-tavily-python
-litellm
+crewai[google-genai]>=0.30.0
+google-generativeai>=0.5.0
 neo4j
+tavily-python
