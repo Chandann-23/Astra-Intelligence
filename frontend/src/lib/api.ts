@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 1. Define the URL from env or fallback
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://astra-intelligence-production.up.railway.app";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://chandann-23-astra-backend-v2.hf.space";
 
 // 2. Create the axios instance using the variable we just defined
 const api = axios.create({
