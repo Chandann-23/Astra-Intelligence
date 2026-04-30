@@ -48,10 +48,17 @@ def health():
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):
+    print('DEBUG: Received research request')
     try:
         astra = AstraCrew()
+        
+        # Wrap crew kickoff in async task to prevent blocking
+        async def generate_stream():
+            for chunk in astra.run_crew_stream(request.topic, str(request.history)):
+                yield chunk
+        
         return StreamingResponse(
-            astra.run_crew_stream(request.topic, str(request.history)), 
+            generate_stream(), 
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
