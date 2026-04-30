@@ -119,7 +119,60 @@ export default function Home() {
           if (line.startsWith('data: ')) {
             const data = JSON.parse(line.replace('data: ', ''));
             
-            if (data.type === 'log') {
+            // Handle LangGraph status events
+            if (data.status) {
+              setLogs(prev => [...prev, `[${data.node?.toUpperCase() || 'SYSTEM'}]: ${data.message}`]);
+              
+              // Update active agent based on node
+              if (data.node === 'researcher') setActiveAgent("Researcher");
+              else if (data.node === 'critic') setActiveAgent("Critic");
+              else if (data.node === 'storage') setActiveAgent("Storage");
+              else if (data.node === 'end') setActiveAgent(null);
+              
+              // Handle completion
+              if (data.status === 'completed' && data.result) {
+                const astraMessage: Message = { 
+                  id: (Date.now() + 1).toString(), 
+                  role: 'astra', 
+                  content: data.result,
+                  type: 'analysis',
+                  retrievedNodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined,
+                  isMemoryAccessed: memoryAccessed
+                };
+                setMessages(prev => [...prev, astraMessage]);
+                setActiveAgent(null);
+                setLogs(prev => [...prev, "[SYSTEM]: Analysis sequence complete."]);
+                setLoading(false);
+              }
+              
+              // Handle errors
+              if (data.status === 'error') {
+                setLogs(prev => [...prev, `[ERROR]: ${data.message}`]);
+                const errorMessage: Message = { 
+                  id: (Date.now() + 1).toString(), 
+                  role: 'astra', 
+                  content: `Error: ${data.message}` 
+                };
+                setMessages(prev => [...prev, errorMessage]);
+                setLoading(false);
+              }
+            }
+            // Handle partial results during streaming
+            else if (data.partial_result) {
+              // Update the last message with partial result
+              setMessages(prev => {
+                const lastMessage = prev[prev.length - 1];
+                if (lastMessage && lastMessage.role === 'astra' && lastMessage.type === 'analysis') {
+                  return [
+                    ...prev.slice(0, -1),
+                    { ...lastMessage, content: data.partial_result }
+                  ];
+                }
+                return prev;
+              });
+            }
+            // Legacy support for old format
+            else if (data.type === 'log') {
               const content = data.content;
               setLogs(prev => [...prev, content]);
               
@@ -619,7 +672,12 @@ export default function Home() {
                     </div>
                     {msg.type === 'analysis' ? (
                       <div className="w-full space-y-4 max-w-full overflow-hidden">
-                        <AnalysisDisplay result={msg.content} />
+                        <AnalysisDisplay 
+                          result={msg.content}
+                          status="completed"
+                          currentNode="end"
+                          message="Analysis complete"
+                        />
                         
                         {msg.retrievedNodes && (
                           <div className="mt-2">

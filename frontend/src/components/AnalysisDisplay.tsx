@@ -6,9 +6,21 @@ import ReactMarkdown from "react-markdown";
 
 interface AnalysisDisplayProps {
   result: string;
+  status?: string;
+  currentNode?: string;
+  message?: string;
+  partialResult?: string;
+  storageResult?: string;
 }
 
-const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ result }) => {
+const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ 
+  result, 
+  status, 
+  currentNode, 
+  message, 
+  partialResult, 
+  storageResult 
+}) => {
   const cleanText = (text: string) => {
     return text
       .replace(/^(\s*#+)([a-zA-Z0-9])/gm, '$1 $2') // Robust regex to insert space: #Introduction -> # Introduction
@@ -21,21 +33,24 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ result }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [isTyping, setIsTyping] = useState(true);
 
+  // Determine what text to display
+  const textToDisplay = partialResult || cleanedResult;
+
   useEffect(() => {
     setDisplayedText("");
     setIsTyping(true);
     let i = 0;
     const intervalId = setInterval(() => {
-      setDisplayedText((prev) => prev + cleanedResult.charAt(i));
+      setDisplayedText((prev) => prev + textToDisplay.charAt(i));
       i++;
-      if (i >= cleanedResult.length) {
+      if (i >= textToDisplay.length) {
         clearInterval(intervalId);
         setIsTyping(false);
       }
     }, 10); // Slightly faster for markdown
 
     return () => clearInterval(intervalId);
-  }, [cleanedResult]);
+  }, [textToDisplay]);
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-black/40 backdrop-blur-xl border border-emerald-500/20 rounded-2xl overflow-hidden shadow-2xl relative transition-all duration-500">
@@ -52,7 +67,7 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ result }) => {
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/40" />
         </div>
         <div className="text-[10px] uppercase tracking-[0.3em] font-bold text-zinc-500">
-          Analysis_Stream
+          {currentNode ? `${currentNode}_Stream` : 'Analysis_Stream'}
         </div>
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
@@ -62,11 +77,25 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ result }) => {
               className="w-1.5 h-1.5 rounded-full bg-emerald-500"
             />
             <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-tighter">
-              Live
+              {status === 'completed' ? 'Done' : 'Live'}
             </span>
           </div>
         </div>
       </div>
+
+      {/* Status Message */}
+      {message && status !== 'completed' && (
+        <div className="bg-cyan-500/10 border border-cyan-500/20 px-4 py-3 mx-8 mt-6 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full"
+            />
+            <span className="text-cyan-400 text-sm font-medium">{message}</span>
+          </div>
+        </div>
+      )}
 
       {/* Terminal Content */}
       <div className="p-8 min-h-[200px] relative overflow-hidden z-30">
@@ -113,6 +142,16 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ result }) => {
                 className="inline-block w-1.5 h-4 ml-1 bg-emerald-500 align-middle"
               />
             )}
+            
+            {/* Storage Result */}
+            {storageResult && status === 'completed' && (
+              <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span className="text-emerald-400 text-sm font-medium">Saved to Neo4j</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -123,7 +162,7 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ result }) => {
         <div>UTF-8</div>
         <div className="flex items-center gap-1.5">
           <div className="w-1 h-1 rounded-full bg-emerald-500" />
-          Llama-3.3-Groq
+          LangGraph-Gemini
         </div>
       </div>
     </div>
