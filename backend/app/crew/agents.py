@@ -11,23 +11,26 @@ from app.tools.graph_tool import neo4j_manager
 
 @tool("tavily_search")
 def search_tool(query: str):
-    """Search the web for information using Tavily."""
-    # Manually fetch key inside the function to ensure it's fresh
+    """Search web for real-time information."""
+    import os
+    from tavily import TavilyClient
+
     api_key = os.environ.get("TAVILY_API_KEY")
-    
     if not api_key:
-        return "Error: TAVILY_API_KEY is missing from environment variables."
+        return "Error: Missing Tavily API Key."
 
     try:
-        from tavily import TavilyClient
         client = TavilyClient(api_key=api_key)
-        # Simplify the search request
-        search_result = client.search(query=query, max_results=3)
+        # We only want basic results to keep 'thought' clean
+        search_result = client.search(query=query, search_type="web", max_results=3)
         
-        # Return only the essential content as a string
-        # Models often crash if they get a raw JSON object instead of text
-        context = "\n".join([f"Source: {r['url']}\nContent: {r['content']}" for r in search_result['results']])
-        return context
+        # Extract ONLY title and content snippets
+        cleaned_results = []
+        for r in search_result.get('results', []):
+            content = r.get('content', '')[:500] # Limit each result to 500 chars
+            cleaned_results.append(f"Title: {r.get('title')}\nContent: {content}...")
+        
+        return "\n\n".join(cleaned_results)
     except Exception as e:
         return f"Tavily Search failed: {str(e)}"
 
