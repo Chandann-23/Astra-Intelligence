@@ -6,8 +6,8 @@ langchain-google-genai==1.0.10
 langchain==0.2.17
 langchain-community==0.2.17
 langchain-core==0.2.43
-# Graph Engine
-langgraph==0.1.23
+# Graph Engine - Version adjusted for availability
+langgraph==0.1.4
 # Database & Tools
 neo4j
 tavily-python
