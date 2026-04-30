@@ -12,8 +12,9 @@ from app.tools.graph_tool import neo4j_manager
 # The 'Memory' - Massive context window for complex research
 # Use this for deep analysis and synthesis
 gemini_pro_llm = LLM(
-    model="gemini/gemini-1.5-pro",
-    temperature=0.5
+    model="gemini/gemini-1.5-flash", 
+    api_key=os.getenv("GEMINI_API_KEY"),
+    temperature=0.7
 )
 
 @tool("tavily_search")
