@@ -2,6 +2,7 @@ import os
 import json
 from typing import TypedDict, Annotated, Generator
 from dotenv import load_dotenv
+import google.generativeai as genai
 
 # LangChain / LangGraph Imports
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -11,6 +12,9 @@ from langchain_core.tools import tool
 # Load environment variables
 load_dotenv()
 
+# Phase 1: Force the underlying Google SDK to use the stable v1 endpoint
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"), transport="rest")
+
 # Phase 2: Define AgentState
 class AgentState(TypedDict):
     query: str
@@ -19,12 +23,13 @@ class AgentState(TypedDict):
     revision_count: int
     storage_result: str  # Added to prevent key errors in storage_node
 
-# Phase 2: Initialize Stable Gemini 8b LLM
-# Gemini 1.5 Flash-8b offers fast iterations and stable v1 API access
+# Phase 2: Force the LangChain wrapper to point to the correct production address
 llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash-8b",
-    google_api_key=os.getenv('GOOGLE_API_KEY'),
-    version="v1", # Forces stable v1 endpoint to bypass 404 errors
+    model="gemini-1.5-flash", 
+    google_api_key=os.getenv("GOOGLE_API_KEY"),
+    # This 'client_options' is the secret weapon to kill the v1beta 404
+    client_options={"api_endpoint": "generativelanguage.googleapis.com"},
+    version="v1",
     temperature=0.7
 )
 
