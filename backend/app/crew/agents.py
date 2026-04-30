@@ -21,13 +21,13 @@ def search_tool(query: str):
 
     try:
         client = TavilyClient(api_key=api_key)
-        # We only want basic results to keep 'thought' clean
+        # We only want basic results to keep the 'thought' clean
         search_result = client.search(query=query, search_type="web", max_results=3)
         
-        # Extract ONLY title and content snippets
+        # Extract ONLY the title and content snippets with context compression
         cleaned_results = []
         for r in search_result.get('results', []):
-            content = r.get('content', '')[:500] # Limit each result to 500 chars
+            content = r.get('content', '')[:400] # Limit each result to 400 chars to save tokens
             cleaned_results.append(f"Title: {r.get('title')}\nContent: {content}...")
         
         return "\n\n".join(cleaned_results)
