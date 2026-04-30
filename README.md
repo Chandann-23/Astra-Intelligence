@@ -55,19 +55,20 @@ Setup Steps
 Clone the repository:
 git clone [https://github.com/Chandann-23/Astra-Intelligence.git](https://github.com/Chandann-23/Astra-Intelligence.git)
 
-Setup Backend:
-
-Navigate to the backend directory.
-
-Install dependencies: pip install -r requirements.txt.
-
-Create a .env file with your GROQ_API_KEY, TAVILY_API_KEY, and Neo4j credentials.
-
-Run the server: python -m uvicorn app.main:app --reload.
-
-Setup Frontend:
-
-Navigate to the frontend directory.
+## Setup
+1. **Database**: Run `docker-compose up -d`
+2. **Backend**:
+   - `cd backend`
+   - `pip install -r requirements.txt`
+   - Configure `.env` with required API keys:
+     - `GROQ_API_KEY`
+     - `TAVILY_API_KEY`
+     - `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`
+     - `GEMINI_API_KEY` (for Gemini Pro integration)
+3. **Frontend**:
+   - `cd frontend`
+   - `npm install`
+   - `npm run dev`
 
 Install dependencies: npm install.
 

@@ -23,7 +23,26 @@ class AnalysisRequest(BaseModel):
     history: list = []
 
 @app.get("/health")
-def health(): return {"status": "online"}
+def health():
+    try:
+        # Check Neo4j connection
+        from app.tools.graph_tool import neo4j_manager
+        neo4j_status = "connected" if neo4j_manager.driver else "disconnected"
+        
+        # Check LLM initialization
+        gemini_status = "configured" if os.environ.get("GEMINI_API_KEY") else "missing"
+        
+        return {
+            "status": "online",
+            "services": {
+                "neo4j": neo4j_status,
+                "gemini": gemini_status,
+                "groq": "configured" if os.environ.get("GROQ_API_KEY") else "missing",
+                "tavily": "configured" if os.environ.get("TAVILY_API_KEY") else "missing"
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):
