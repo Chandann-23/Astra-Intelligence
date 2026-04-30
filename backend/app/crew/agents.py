@@ -20,11 +20,13 @@ class AgentState(TypedDict):
     storage_result: str  # Added to prevent key errors in storage_node
 
 # Phase 2: Initialize Hugging Face Inference API LLM
-# Llama 3.3 70B is incredibly fast on Hugging Face's inference hardware
+# Using Llama-3.3-70B for high-quality research with stable client communication
 llm = HuggingFaceEndpoint(
-    repo_id="meta-llama/Llama-3.3-70B-Instruct",
-    task="text-generation",
-    huggingfacehub_token=os.getenv("HUGGINGFACE_TOKEN"),
+    repo_id='meta-llama/Llama-3.3-70B-Instruct',
+    huggingfacehub_api_token=os.getenv('HUGGINGFACE_TOKEN'),
+    task='text-generation',
+    # Adding these parameters ensures the client communicates correctly
+    content_type='application/json',
     temperature=0.7,
     max_new_tokens=1024
 )
