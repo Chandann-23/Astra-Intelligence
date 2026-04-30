@@ -1,11 +1,10 @@
 fastapi
 uvicorn
 python-dotenv
-# Core AI SDKs - Stable Gemini 8b Integration
-langchain-google-genai==1.0.10
+# Core AI SDKs - Hugging Face Inference API Integration
+huggingface_hub
+langchain-huggingface
 langchain==0.2.17
-langchain-community==0.2.17
-langchain-core==0.2.43
 # Graph Engine - Version adjusted for availability
 langgraph==0.1.4
 # Database & Tools
