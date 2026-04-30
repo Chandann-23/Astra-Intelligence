@@ -3,6 +3,7 @@ import sys
 import queue
 import threading
 import json
+from typing import Generator
 from crewai import Agent, Task, Crew, Process
 from crewai.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
