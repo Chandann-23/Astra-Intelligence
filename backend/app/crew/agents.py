@@ -6,13 +6,16 @@ import json
 from typing import Generator
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # LANGGRAPH MIGRATION - STABLE V1 API
 # Migrated from CrewAI to LangGraph for better stability and control
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Annotated
-import os
 import json
 
 # Phase 2: Define AgentState with TypedDict fields
@@ -23,10 +26,13 @@ class AgentState(TypedDict):
     revision_count: int
 
 # Phase 2: Initialize ChatGoogleGenerativeAI with explicit version='v1'
+api_key = os.getenv('GOOGLE_API_KEY')
+print('API Key loaded:', bool(api_key))
+
 llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
     model_kwargs={"version": "v1"},  # Force stable v1 API
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
+    google_api_key=api_key,
     temperature=0.7
 )
 
