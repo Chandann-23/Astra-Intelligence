@@ -9,12 +9,12 @@ from crewai.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
 
-# HARD-CODED STABLE CONFIGURATION
-# Explicitly set base URL to bypass library guessing logic
+# NATIVE GOOGLE GENERATIVE AI PROVIDER
+# Forces stable v1 endpoint, bypasses library guessing logic
 gemini_pro_llm = LLM(
-    model="gemini/gemini-1.5-flash",
+    model="google/gemini-1.5-flash", 
     api_key=os.getenv("GEMINI_API_KEY"),
-    base_url="https://generativelanguage.googleapis.com/v1beta", # Explicitly set to base
+    base_url="https://generativelanguage.googleapis.com/v1",
     temperature=0.7
 )
 

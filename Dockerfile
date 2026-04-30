@@ -20,9 +20,12 @@ COPY backend/ .
 # Hugging Face uses port 7860 as standard
 ENV PORT=7860
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
 EXPOSE 7860
 
 # Run using uvicorn with debug logging
 # Note: Since we copied the contents of /backend into /app, 
 # 'app.main:app' assumes there is a folder named 'app' inside 'backend'.
+# PYTHONPATH ensures Python can find app.crew.agents module
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860", "--log-level", "debug"]
