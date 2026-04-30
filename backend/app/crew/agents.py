@@ -36,9 +36,15 @@ def search_tool(query: str):
 
 @tool("neo4j_tool")
 def graph_tool(query: str):
-    """Save technical entities and relationships to the knowledge graph."""
-    # Use the global neo4j_manager import - Fixed self parameter issue
-    return neo4j_manager.upsert_graph_relationship(query)
+    """Execute a Cypher query against the Neo4j database to save research entities."""
+    from app.tools.graph_tool import neo4j_manager
+    
+    try:
+        # If your manager uses a generic query runner:
+        result = neo4j_manager.execute_query(query) 
+        return f"Successfully executed: {result}"
+    except Exception as e:
+        return f"Database Error: {str(e)}"
 
 # The 'Scout' - High Rate Limits, very fast
 # Use this for searching and parsing web data
