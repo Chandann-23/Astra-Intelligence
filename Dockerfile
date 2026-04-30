@@ -19,6 +19,7 @@ COPY backend/ .
 
 # Hugging Face uses port 7860
 ENV PORT=7860
+ENV PYTHONUNBUFFERED=1
 EXPOSE 7860
 
 # Run using uvicorn with debug logging
