@@ -4,6 +4,9 @@ emoji: 🚀
 colorFrom: blue
 colorTo: indigo
 sdk: docker
+app_port: 7860
+# Add the line below to point to your backend folder
+dockerfile: backend/Dockerfile 
 pinned: false
 ---
 
