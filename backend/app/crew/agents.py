@@ -12,9 +12,14 @@ from app.tools.graph_tool import neo4j_manager
 @tool("tavily_search")
 def search_tool(query: str):
     """Search the internet for technical data or current events."""
-    # We initialize the search inside the tool to avoid 'self' issues
-    search = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
-    return search.run(query.replace("'", ""))
+    try:
+        # We initialize the search inside the tool to avoid 'self' issues
+        search = TavilySearchResults(api_key=os.getenv("TAVILY_API_KEY"))
+        results = search.run(query.replace("'", ""))
+        # Return a simplified version so the LLM doesn't choke on huge metadata
+        return str(results)[:2000]
+    except Exception as e:
+        return f"Search failed: {str(e)}"
 
 @tool("neo4j_tool")
 def graph_tool(query: str):
