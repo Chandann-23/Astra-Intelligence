@@ -4,7 +4,7 @@ import queue
 import threading
 import json
 from typing import Generator
-from crewai import Agent, Task, Crew, Process
+from crewai import Agent, Task, Crew, Process, LLM
 from crewai.tools import tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
@@ -40,32 +40,48 @@ def graph_tool(query: str):
     # Use the global neo4j_manager import - Fixed self parameter issue
     return neo4j_manager.upsert_graph_relationship(query)
 
+# The 'Scout' - High Rate Limits, very fast
+# Use this for searching and parsing web data
+researcher_llm = LLM(
+    model="groq/llama-3.1-8b-instant",
+    temperature=0.3
+)
+
+# The 'Commander' - Lower Rate Limits, very smart
+# Use this only for the final report synthesis
+analyzer_llm = LLM(
+    model="groq/llama-3.3-70b-versatile",
+    temperature=0.5
+)
+
 class AstraCrew:
     def __init__(self):
-        # String format requires the 'litellm' package we added to requirements
-        self.llm = "groq/llama-3.3-70b-versatile"
+        # Dual LLM system for optimal token usage
+        self.researcher_llm = researcher_llm
+        self.analyzer_llm = analyzer_llm
 
     def run_crew_stream(self, topic: str, history: str) -> Generator[str, None, None]:
         q = queue.Queue()
         
         def run_kickoff():
             try:
-                # 1. Bring back the Researcher
+                # 1. Researcher uses the 8B model to save tokens
                 researcher = Agent(
-                    role="Lead Tech Researcher",
-                    goal=f"Research the topic and explicitly save all key entities and their relationships to the Neo4j database using your available tools.",
-                    backstory="Expert at finding obscure technical details and persisting them to knowledge graphs.",
-                    llm=self.llm,
+                    role='Lead Tech Researcher',
+                    goal='Search the web and extract key technical entities',
+                    backstory='Expert at high-volume data retrieval and entity extraction.',
+                    llm=self.researcher_llm,
                     tools=[search_tool, graph_tool],
+                    max_rpm=3,  # SRE Tip: Self-limit to 3 requests per minute to stay safe
                     verbose=True
                 )
 
-                # 2. Bring back the Critic (The "Blandness" Killer)
-                critic = Agent(
-                    role="Chief Strategy Officer",
-                    goal="Transform raw research into a structured, executive report.",
-                    backstory="You specialize in introductions, critical analysis, and conclusions.",
-                    llm=self.llm,
+                # 2. Analyzer uses the 70B model for the final "Brain" work
+                analyzer = Agent(
+                    role='Chief Technical Analyst',
+                    goal='Synthesize research data into a comprehensive report',
+                    backstory='Master at finding patterns and deep reasoning.',
+                    llm=self.analyzer_llm,
                     verbose=True
                 )
 
@@ -79,10 +95,15 @@ class AstraCrew:
                 t2 = Task(
                     description="Review the findings. Add a hook introduction, 3 critical reasons why this matters, and a forward-looking conclusion.",
                     expected_output="A polished, strategic report with markdown headers.",
-                    agent=critic
+                    agent=analyzer
                 )
 
-                crew = Crew(agents=[researcher, critic], tasks=[t1, t2], verbose=True)
+                crew = Crew(
+                    agents=[researcher, analyzer], 
+                    tasks=[t1, t2], 
+                    process=Process.sequential, 
+                    verbose=True
+                )
 
                 # Enhanced Logger to catch "Thought" for the Strategy Stream
                 class Logger:
