@@ -27,8 +27,9 @@ print('API Key loaded:', bool(api_key))
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
-    google_api_key=api_key,
-    api_version="v1", 
+    google_api_key=os.getenv("GOOGLE_API_KEY"),
+    # This points directly to the production stable endpoint
+    base_url="https://generativelanguage.googleapis.com/v1",
     temperature=0.7
 )
 
