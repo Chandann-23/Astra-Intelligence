@@ -14,11 +14,18 @@ from app.tools.graph_tool import neo4j_manager
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
 
-gemini_pro_llm = ChatGoogleGenerativeAI(
+# 1. Create the native LangChain object
+native_google_llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
     google_api_key=os.getenv("GEMINI_API_KEY"),
-    temperature=0.7,
-    # This is the key: forcing direct Google SDK 
+    temperature=0.7
+)
+
+# 2. Wrap it in CrewAI's LLM class to pass Pydantic validation
+# This is the "permanent solution" to fix validation errors in your screenshot
+gemini_pro_llm = LLM(
+    model="gemini/gemini-1.5-flash",
+    base_llm=native_google_llm
 )
 
 # IF THE ABOVE STILL 404s, USE THIS 'NATIVE' FALLBACK:
