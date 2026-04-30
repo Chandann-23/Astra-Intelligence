@@ -48,17 +48,11 @@ def graph_tool(query: str):
 
 # The 'Scout' - High Rate Limits, very fast
 # Use this for searching and parsing web data
-researcher_llm = LLM(
-    model="groq/llama-3.1-8b-instant",
-    temperature=0.3
-)
+researcher_llm = gemini_pro_llm
 
 # The 'Commander' - Lower Rate Limits, very smart
 # Use this only for final report synthesis
-analyzer_llm = LLM(
-    model="groq/llama-3.3-70b-versatile",
-    temperature=0.5
-)
+analyzer_llm = gemini_pro_llm
 
 # The 'Memory' - Massive context window for complex research
 # Use this for deep analysis and synthesis
