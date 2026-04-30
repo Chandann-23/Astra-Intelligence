@@ -54,8 +54,21 @@ async def stream_analysis(request: AnalysisRequest):
         
         # Wrap crew kickoff in async task to prevent blocking
         async def generate_stream():
-            for chunk in astra.run_crew_stream(request.topic, str(request.history)):
-                yield chunk
+            # Send immediate heartbeat to keep stream alive
+            yield '{"status": "initializing", "message": "Starting research..."}\n'
+            
+            try:
+                for chunk in astra.run_crew_stream(request.topic, str(request.history)):
+                    yield chunk
+            except Exception as crew_error:
+                # Graceful error handling to prevent stream crashes
+                error_response = {
+                    "status": "error", 
+                    "message": str(crew_error),
+                    "type": "crew_execution_error"
+                }
+                yield f"data: {json.dumps(error_response)}\n\n"
+                return
         
         return StreamingResponse(
             generate_stream(), 
