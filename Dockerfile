@@ -17,12 +17,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 3. Copy the rest of the backend source code into the container
 COPY backend/ .
 
-# Fresh Space uses port 3000 to avoid 503 health check errors
-ENV PORT=3000
+# Hugging Face uses port 7860 as standard
+ENV PORT=7860
 ENV PYTHONUNBUFFERED=1
-EXPOSE 3000
+EXPOSE 7860
 
 # Run using uvicorn with debug logging
 # Note: Since we copied the contents of /backend into /app, 
 # 'app.main:app' assumes there is a folder named 'app' inside 'backend'.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3000", "--log-level", "debug"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860", "--log-level", "debug"]
