@@ -4,7 +4,7 @@ from typing import TypedDict, Annotated, Generator
 from dotenv import load_dotenv
 
 # LangChain / LangGraph Imports
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from langchain_core.tools import tool
 
@@ -19,16 +19,15 @@ class AgentState(TypedDict):
     revision_count: int
     storage_result: str  # Added to prevent key errors in storage_node
 
-# Phase 2: Initialize ChatGoogleGenerativeAI
-# FIX: 'api_version' is the correct parameter for the 2026 SDK 
-# to force the stable v1 path and avoid the v1beta 404.
-api_key = os.getenv('GOOGLE_API_KEY')
-print('API Key loaded:', bool(api_key))
+# Phase 2: Initialize DeepSeek V3 LLM
+# DeepSeek V3 handles structured data and agentic tasks better than Gemini 1.5 Flash
+api_key = os.getenv('DEEPSEEK_API_KEY')
+print('DeepSeek API Key loaded:', bool(api_key))
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    version="v1", # The 'version' key works correctly in 1.0.10
+llm = ChatOpenAI(
+    model="deepseek-chat",
+    base_url="https://api.deepseek.com",
+    api_key=api_key,
     temperature=0.7
 )
 

@@ -1,8 +1,9 @@
 fastapi
 uvicorn
 python-dotenv
-# Core AI SDKs - Aligned for stability
-langchain-google-genai==1.0.10
+# Core AI SDKs - DeepSeek V3 Integration
+openai
+langchain-openai
 langchain==0.2.17
 langchain-community==0.2.17
 langchain-core==0.2.43
