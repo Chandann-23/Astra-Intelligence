@@ -27,9 +27,11 @@ api_key = os.getenv('GOOGLE_API_KEY')
 print('API Key loaded:', bool(api_key))
 
 llm = ChatGoogleGenerativeAI(
-    model='gemini-1.5-flash',
-    google_api_key=os.getenv('GOOGLE_API_KEY'),
-    model_kwargs={'api_version': 'v1'}, # This is the clean 2026 syntax
+    model="gemini-1.5-flash",
+    google_api_key=os.getenv("GOOGLE_API_KEY"),
+    # This is the "Door Lock": it forces production v1 path 
+    # and ignores the beta path completely.
+    client_options={"api_version": "v1"},
     temperature=0.7
 )
 
