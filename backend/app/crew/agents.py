@@ -10,12 +10,15 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from app.tools.graph_tool import neo4j_manager
 
 # NATIVE GOOGLE GENERATIVE AI PROVIDER
-# Forces stable v1 endpoint, bypasses library guessing logic
-gemini_pro_llm = LLM(
-    model="google/gemini-1.5-flash", 
-    api_key=os.getenv("GEMINI_API_KEY"),
-    base_url="https://generativelanguage.googleapis.com/v1",
-    temperature=0.7
+# This uses the official Google SDK directly, bypassing broken v1beta auto-routing
+from langchain_google_genai import ChatGoogleGenerativeAI
+import os
+
+gemini_pro_llm = ChatGoogleGenerativeAI(
+    model="gemini-1.5-flash",
+    google_api_key=os.getenv("GEMINI_API_KEY"),
+    temperature=0.7,
+    # This is the key: forcing direct Google SDK 
 )
 
 # IF THE ABOVE STILL 404s, USE THIS 'NATIVE' FALLBACK:
