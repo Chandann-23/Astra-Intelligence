@@ -31,7 +31,13 @@ async def stream_analysis(request: AnalysisRequest):
         astra = AstraCrew()
         return StreamingResponse(
             astra.run_crew_stream(request.topic, str(request.history)), 
-            media_type="text/event-stream"
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*"
+            }
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

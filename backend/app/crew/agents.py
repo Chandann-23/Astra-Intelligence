@@ -50,8 +50,8 @@ class AstraCrew:
                 # 1. Bring back the Researcher
                 researcher = Agent(
                     role="Lead Tech Researcher",
-                    goal=f"Perform deep-dive research on {topic}",
-                    backstory="Expert at finding obscure technical details.",
+                    goal=f"Research the topic and explicitly save all key entities and their relationships to the Neo4j database using your available tools.",
+                    backstory="Expert at finding obscure technical details and persisting them to knowledge graphs.",
                     llm=self.llm,
                     tools=[search_tool, graph_tool],
                     verbose=True
