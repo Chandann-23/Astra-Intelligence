@@ -27,9 +27,9 @@ api_key = os.getenv('GOOGLE_API_KEY')
 print('API Key loaded:', bool(api_key))
 
 llm = ChatGoogleGenerativeAI(
-    model="gemini-1.5-flash",
-    version="v1",  # <--- THIS IS THE FIX. It overrides the v1beta default.
-    google_api_key=api_key,
+    model='gemini-1.5-flash',
+    google_api_key=os.getenv('GOOGLE_API_KEY'),
+    model_kwargs={'api_version': 'v1'}, # This is the clean 2026 syntax
     temperature=0.7
 )
 
