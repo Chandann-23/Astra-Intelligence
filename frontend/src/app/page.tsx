@@ -654,62 +654,7 @@ export default function Home() {
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scroll-smooth bg-transparent relative">
           <AnimatePresence>
-            {/* RAG Source Feed PiP Window */}
-            {isGraphVisible && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, y: 20 }}
-                className="fixed bottom-32 right-8 w-[450px] h-[350px] bg-zinc-950/60 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 group"
-              >
-                <div className="p-3 border-b border-white/5 flex justify-between items-center bg-white/5 backdrop-blur-md">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">RAG_Source_Feed</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => setExpandedPanel('graph')}
-                      className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
-                      title="Fullscreen"
-                    >
-                      <Maximize2 size={12} className="text-zinc-500 hover:text-white" />
-                    </button>
-                    <button 
-                      onClick={() => setIsGraphVisible(false)}
-                      className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
-                    >
-                      <X size={12} className="text-zinc-500 hover:text-white" />
-                    </button>
-                  </div>
-                </div>
-                <div className="w-full h-full p-4 overflow-y-auto custom-scrollbar">
-                  <div className="space-y-3">
-                    <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">Retrieved Context</div>
-                    <div className="space-y-2">
-                      <div className="p-2 bg-emerald-950/20 border border-emerald-500/20 rounded-lg">
-                        <div className="text-xs text-emerald-300 font-mono">🔍 Tavily Search</div>
-                        <div className="text-[10px] text-zinc-400 mt-1">Real-time web sources fetched</div>
-                        <div className="text-[9px] text-emerald-400/60 mt-1">• Multiple authoritative sources</div>
-                      </div>
-                      <div className="p-2 bg-purple-950/20 border border-purple-500/20 rounded-lg">
-                        <div className="text-xs text-purple-300 font-mono">🧠 Neo4j Memory</div>
-                        <div className="text-[10px] text-zinc-400 mt-1">Persistent knowledge retrieval</div>
-                        <div className="text-[9px] text-purple-400/60 mt-1">• Agent state management</div>
-                      </div>
-                    </div>
-                    <div className="text-xs text-zinc-500 mt-4">
-                      <div className="font-bold text-cyan-400">RAG Pipeline Active</div>
-                      <div className="mt-1 space-y-1">
-                        <div>• Context Injection: ENABLED</div>
-                        <div>• Source Attribution: TRACKED</div>
-                        <div>• Memory Retrieval: ACTIVE</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
+          </AnimatePresence>
 
             {messages.map((msg) => (
               <motion.div
@@ -905,6 +850,25 @@ export default function Home() {
               <span className="flex items-center gap-2 hover:text-purple-400 transition-colors"><div className="w-1 h-1 rounded-full bg-purple-500" /> Latency: <span id="latency-metric">~300ms</span></span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-zinc-900 border border-cyan-500/30 text-cyan-400 px-6 py-3 rounded-2xl shadow-2xl z-50 backdrop-blur-xl"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+              <span className="text-sm font-medium">{toast}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
         </div>
       </div>
 
