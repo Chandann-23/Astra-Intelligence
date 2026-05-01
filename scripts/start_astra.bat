@@ -12,7 +12,7 @@ if not exist ".env" (
 
 REM Start LiteLLM proxy in background
 echo 🔧 Starting LiteLLM proxy on port 4000...
-cd backend
+cd ../backend
 start "LiteLLM Proxy" cmd /c "litellm --config config.yaml --port 4000"
 
 REM Wait for LiteLLM to start

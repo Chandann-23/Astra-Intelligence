@@ -63,7 +63,7 @@ Write-Host "🔧 Starting LiteLLM proxy on port 4000..." -ForegroundColor Blue
 
 $proxyJob = Start-Job -ScriptBlock {
     Set-Location $using:PWD
-    python -m litellm --config backend/config.yaml --port 4000
+    python -m litellm --config ../backend/config.yaml --port 4000
 } -Name "LiteLLM-Proxy"
 
 # Wait for LiteLLM to start
@@ -95,7 +95,7 @@ catch {
 Write-Host "🧠 Starting Astra backend..." -ForegroundColor Blue
 
 $backendJob = Start-Job -ScriptBlock {
-    Set-Location $using:PWD\backend
+    Set-Location $using:PWD\..\backend
     uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 } -Name "Astra-Backend"
 

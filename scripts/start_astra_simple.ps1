@@ -11,7 +11,7 @@ if (-not (Test-Path ".env")) {
 
 # Start LiteLLM proxy in background
 Write-Host "Starting LiteLLM proxy on port 4000..." -ForegroundColor Blue
-Start-Process -WindowStyle Hidden -FilePath "python" -ArgumentList "-m", "litellm", "--config", "backend/config.yaml", "--port", "4000"
+Start-Process -WindowStyle Hidden -FilePath "python" -ArgumentList "-m", "litellm", "--config", "../backend/config.yaml", "--port", "4000"
 
 # Wait for LiteLLM to start
 Write-Host "Waiting for LiteLLM proxy to start..." -ForegroundColor Blue
@@ -34,7 +34,7 @@ catch {
 
 # Start Astra backend
 Write-Host "Starting Astra backend..." -ForegroundColor Blue
-Set-Location backend
+Set-Location ../backend
 Start-Process -WindowStyle Hidden -FilePath "uvicorn" -ArgumentList "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"
 
 # Wait for Astra backend to start

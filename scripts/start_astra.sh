@@ -23,7 +23,7 @@ trap cleanup SIGINT SIGTERM
 
 # Start LiteLLM proxy in background
 echo "🔧 Starting LiteLLM proxy on port 4000..."
-cd backend
+cd ../backend
 litellm --config config.yaml --port 4000 &
 LITELLM_PID=$!
 
