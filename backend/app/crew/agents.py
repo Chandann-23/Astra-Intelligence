@@ -25,11 +25,12 @@ def invoke_llm(prompt: str) -> str:
     """Invoke LLM through LiteLLM AI Gateway with fallback handling"""
     try:
         response = litellm.completion(
-            model="astra-brain",
+            model="openai/astra-brain",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=1024,
-            base_url="http://localhost:4000"
+            base_url="http://localhost:48583/v1",
+            api_key=os.getenv("LITELLM_MASTER_KEY")
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -65,6 +66,14 @@ def researcher_node(state: AgentState) -> AgentState:
     """
     
     response = invoke_llm(prompt)
+    
+    # Check for error responses to prevent recursion limit
+    if "Error:" in response or "error" in response.lower():
+        print(f"Researcher node error detected: {response}")
+        state["research_output"] = f"Research failed due to LLM error: {response}"
+        state["revision_count"] = 5  # Force end condition
+        return state
+    
     state["research_output"] = response
     return state
 
@@ -87,6 +96,14 @@ def critic_node(state: AgentState) -> AgentState:
     """
     
     response = invoke_llm(prompt)
+    
+    # Check for error responses to prevent recursion limit
+    if "Error:" in response or "error" in response.lower():
+        print(f"Critic node error detected: {response}")
+        state["critique"] = f"Critique failed due to LLM error: {response}"
+        state["revision_count"] = 5  # Force end condition
+        return state
+    
     state["critique"] = response
     return state
 
@@ -94,7 +111,10 @@ def critic_node(state: AgentState) -> AgentState:
 def storage_node(state: AgentState) -> AgentState:
     """Save the final research to Neo4j"""
     try:
-        from app.tools.graph_tool import neo4j_manager
+        from app.tools.graph_tool import Neo4jManager
+        
+        # Create a new Neo4jManager instance
+        neo4j_manager = Neo4jManager()
         
         # Create a simple node with the research output
         cypher_query = """
@@ -124,6 +144,12 @@ def should_continue(state: AgentState) -> str:
     """Determine if we should continue revising or move to storage"""
     critique = state.get('critique', '')
     revision_count = state.get('revision_count', 0)
+    research_output = state.get('research_output', '')
+    
+    # Check for errors to prevent infinite loops - skip all nodes on research error
+    if "Error:" in research_output or "error" in research_output.lower():
+        print("Error detected in research output, forcing end of workflow")
+        return "END"
     
     # If critique says approved or we've revised twice, move to storage
     if "APPROVED" in critique.upper() or revision_count >= 2:
@@ -149,7 +175,8 @@ workflow.add_conditional_edges(
     should_continue, 
     {
         "researcher": "researcher",
-        "storage": "storage"
+        "storage": "storage",
+        "END": END
     }
 )
 workflow.add_edge("storage", END)

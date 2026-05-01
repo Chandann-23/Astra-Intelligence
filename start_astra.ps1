@@ -165,7 +165,7 @@ try {
 }
 catch [System.Management.Automation.HaltCommandException] {
     # User pressed Ctrl+C
-    Write-Host "`n🛑 Stopping services..." -ForegroundColor Yellow
+    Write-Host "`nStopping services..." -ForegroundColor Yellow
 }
 finally {
     Cleanup-Jobs

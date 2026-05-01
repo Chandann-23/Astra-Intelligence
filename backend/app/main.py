@@ -16,12 +16,31 @@ from app.crew.agents import app_graph
 
 app = FastAPI()
 
-# Allow EVERYTHING to stop CORS headaches
+# Pre-run proxy validation
+def validate_proxy_connection():
+    """Validate LiteLLM proxy connection before starting server"""
+    try:
+        import requests
+        response = requests.get("http://localhost:48583/health", timeout=5)
+        if response.status_code == 200:
+            print("✅ LiteLLM proxy is reachable")
+            return True
+        else:
+            print(f"⚠️  LiteLLM proxy returned status {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"❌ Cannot reach LiteLLM proxy: {str(e)}")
+        return False
+
+# Validate proxy on startup
+proxy_status = validate_proxy_connection()
+
+# Simplified CORS middleware to prevent body consumption issues
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True, # Changed to True for better cookie/session handling
-    allow_methods=["*"],
+    allow_credentials=False,  # Simplified to prevent body consumption
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -38,7 +57,7 @@ def health():
         # Check LiteLLM proxy health
         gateway_status = "down"
         try:
-            response = requests.get("http://localhost:4000/health", timeout=5)
+            response = requests.get("http://localhost:48583/health", timeout=5)
             if response.status_code == 200:
                 gateway_status = "online"
         except:
@@ -66,13 +85,18 @@ def gateway_health():
     """Specific health check for LiteLLM proxy"""
     try:
         import requests
-        response = requests.get("http://localhost:4000/health", timeout=5)
+        response = requests.get("http://localhost:48583/health", timeout=5)
         if response.status_code == 200:
             return {"status": "online", "gateway": "healthy"}
         else:
             return {"status": "error", "message": "Gateway returned non-200 status"}
     except Exception as e:
         return {"status": "GATEWAY_DOWN", "message": f"Cannot reach LiteLLM proxy: {str(e)}"}
+
+@app.get("/test")
+def test_endpoint():
+    """Minimal test endpoint to isolate request handling issues"""
+    return {"status": "ok", "message": "Test endpoint working"}
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):
