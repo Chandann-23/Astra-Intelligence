@@ -654,8 +654,6 @@ export default function Home() {
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scroll-smooth bg-transparent relative">
           <AnimatePresence>
-          </AnimatePresence>
-
             {messages.map((msg) => (
               <motion.div
                 key={msg.id}
