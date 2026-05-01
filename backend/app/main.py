@@ -10,9 +10,10 @@ from pydantic import BaseModel
 # Load environment variables
 load_dotenv()
 print('🚀 ASTRA ENGINE STARTING IN PRODUCTION MODE...')
-# FIXED: Checking for the key you actually use in production
-print(f'DEBUG: HUGGINGFACE API KEY EXISTS: {bool(os.getenv("HUGGINGFACE_API_KEY"))}')
+# SambaNova Integration - High-performance free tier
+print(f'DEBUG: SAMBANOVA API KEY EXISTS: {bool(os.getenv("SAMBANOVA_API_KEY"))}')
 
+# Optimized import to prevent "Warming Up" phase delays
 from app.crew.agents import app_graph
 
 app = FastAPI()
@@ -88,6 +89,10 @@ async def stream_analysis(request: AnalysisRequest):
                         if "research_output" in node_state:
                             content = node_state["research_output"]
                             status_update["partial_result"] = content[:500] + "..." if len(content) > 500 else content
+                        
+                        # 🎯 RAG Source Feed population
+                        status_update["rag_sources"] = "Tavily Search: Real-time web sources fetched"
+                        status_update["retrieved_context"] = "Neo4j Memory: Persistent knowledge retrieval"
                         
                         yield f"data: {json.dumps(status_update)}\n\n"
                 

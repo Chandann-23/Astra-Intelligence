@@ -11,9 +11,9 @@ from langchain_core.tools import tool
 # Load environment variables FIRST
 load_dotenv()
 
-# GLM-5.1 Configuration via SambaNova Free Tier
-# Bypass Hugging Face credit limits while maintaining GLM-5.1 architecture
-PRODUCTION_MODEL = "sambanova/GloMo-5.1"
+# High-Performance Llama Configuration via SambaNova Free Tier
+# Use top-tier Meta-Llama-3.3-70B-Instruct for maximum speed and capability
+PRODUCTION_MODEL = "sambanova/Meta-Llama-3.3-70B-Instruct"
 
 # Phase 2: Define AgentState
 class AgentState(TypedDict):
