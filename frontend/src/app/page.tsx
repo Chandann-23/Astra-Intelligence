@@ -739,17 +739,17 @@ export default function Home() {
         {!isSidebarOpen && (
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="absolute right-4 top-24 z-20 bg-zinc-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl text-zinc-400 hover:text-white hover:border-cyan-500/50 transition-all shadow-2xl group"
+            className="absolute left-20 top-24 z-20 bg-zinc-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl text-zinc-400 hover:text-white hover:border-cyan-500/50 transition-all shadow-2xl group"
           >
-            <ChevronLeft size={20} className="group-hover:scale-110 transition-transform" />
+            <ChevronRight size={20} className="group-hover:scale-110 transition-transform" />
           </button>
         )}
         {isSidebarOpen && (
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="absolute right-4 top-24 z-20 bg-zinc-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl text-cyan-400 hover:text-white hover:border-cyan-500/50 transition-all shadow-2xl group"
+            className="absolute left-20 top-24 z-20 bg-zinc-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl text-cyan-400 hover:text-white hover:border-cyan-500/50 transition-all shadow-2xl group"
           >
-            <ChevronRight size={20} className="group-hover:scale-110 transition-transform" />
+            <ChevronLeft size={20} className="group-hover:scale-110 transition-transform" />
           </button>
         )}
 
