@@ -24,42 +24,61 @@ class AgentState(TypedDict):
 def invoke_llm(prompt: str) -> str:
     """Invoke LLM through LiteLLM AI Gateway with fallback handling"""
     
-    # Dynamic base_url for local vs production
-    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-    if os.getenv("ENVIRONMENT") == "local" or base_url.startswith("http://localhost"):
-        # Local development - use LiteLLM proxy
-        model_name = "openai/astra-brain"
-        api_key = os.getenv("LITELLM_MASTER_KEY") or os.getenv("OPENAI_API_KEY")
-    else:
-        # Production - use direct provider
-        model_name = "gemini/gemini-1.5-flash"
-        api_key = os.getenv("GOOGLE_API_KEY")
-        base_url = "https://generativelanguage.googleapis.com/v1"
+    # Environment detection for local vs production
+    is_local = os.getenv("ENVIRONMENT") == "local" or os.getenv("OPENAI_BASE_URL", "").startswith("http://localhost")
     
     try:
-        response = litellm.completion(
-            model=model_name,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=1024,
-            base_url=base_url,
-            api_key=api_key
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print(f"LiteLLM Error: {str(e)}")
-        # Fallback to direct Gemini if gateway is down
-        try:
+        if is_local:
+            # Local development - use LiteLLM proxy with OpenAI-compatible endpoint
+            response = litellm.completion(
+                model="openai/astra-brain",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=1024,
+                base_url="http://localhost:48583/v1",
+                api_key=os.getenv("LITELLM_MASTER_KEY") or os.getenv("OPENAI_API_KEY")
+            )
+        else:
+            # Production - use Gemini directly through LiteLLM (let LiteLLM handle base_url)
             response = litellm.completion(
                 model="gemini/gemini-1.5-flash",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=1024,
-                api_key=os.getenv("GOOGLE_API_KEY"),
-                api_base="https://generativelanguage.googleapis.com/v1"
+                api_key=os.getenv("GOOGLE_API_KEY")
+                # Note: Don't set base_url for Gemini - LiteLLM handles it automatically
             )
-            print("Fallback: Direct Gemini API used")
+        
+        return response.choices[0].message.content
+        
+    except Exception as e:
+        print(f"LiteLLM Error: {str(e)}")
+        
+        # Smart fallback based on environment
+        try:
+            if is_local:
+                # Local fallback - try direct Gemini
+                response = litellm.completion(
+                    model="gemini/gemini-1.5-flash",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7,
+                    max_tokens=1024,
+                    api_key=os.getenv("GOOGLE_API_KEY")
+                )
+                print("Local Fallback: Direct Gemini API used")
+            else:
+                # Production fallback - try Hugging Face
+                response = litellm.completion(
+                    model="huggingface/mistral-7b-instruct",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.7,
+                    max_tokens=1024,
+                    api_key=os.getenv("HUGGINGFACE_TOKEN")
+                )
+                print("Production Fallback: Hugging Face model used")
+            
             return response.choices[0].message.content
+            
         except Exception as fallback_error:
             print(f"Fallback also failed: {str(fallback_error)}")
             return f"Error: Unable to process request - {str(e)}"

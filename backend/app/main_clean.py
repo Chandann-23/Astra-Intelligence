@@ -44,16 +44,18 @@ def health():
         import requests
         
         # Check LiteLLM proxy health (only in local development)
-        gateway_status = "direct"  # Production uses direct provider access
-        if os.getenv("ENVIRONMENT") == "local" or os.getenv("OPENAI_BASE_URL", "").startswith("http://localhost"):
+        is_local = os.getenv("ENVIRONMENT") == "local" or os.getenv("OPENAI_BASE_URL", "").startswith("http://localhost")
+        gateway_status = "direct_provider" if not is_local else "down"
+        
+        if is_local:
             try:
                 response = requests.get("http://localhost:48583/health", timeout=5)
                 if response.status_code == 200:
-                    gateway_status = "online"
+                    gateway_status = "proxy_online"
                 else:
-                    gateway_status = "down"
+                    gateway_status = "proxy_down"
             except:
-                gateway_status = "down"
+                gateway_status = "proxy_down"
         
         # Check API keys
         google_key = os.environ.get("GOOGLE_API_KEY")
