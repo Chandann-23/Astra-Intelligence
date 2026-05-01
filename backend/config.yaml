@@ -31,6 +31,11 @@ model_list:
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
   database_url: os.environ/LITELLM_DATABASE_URL
+  # Enable Admin UI for monitoring
+  ui: true
+  allow_user_auth: true
+  # UI settings
+  ui_port: 4001
   
 # Retry and fallback configuration
 retry_config:

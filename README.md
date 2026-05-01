@@ -60,6 +60,36 @@ The `config.yaml` file defines the AI Gateway routing:
 
 This architecture automatically handles 404 errors by retrying with the fallback provider.
 
+## Monitoring & Administration
+
+### LiteLLM Admin Dashboard
+Access the built-in monitoring dashboard to track request latency, error rates, and fallback triggers:
+
+- **Local**: http://localhost:4000/ui
+- **Authentication**: Use your `LITELLM_MASTER_KEY` from `.env`
+- **Features**: 
+  - Real-time request monitoring
+  - Error rate tracking
+  - Model usage statistics
+  - Fallback trigger visibility
+
+### Health Endpoints
+- **Main Health**: http://localhost:8000/health
+- **Gateway Health**: http://localhost:8000/gateway/health
+- **Proxy Health**: http://localhost:4000/health
+
+### Testing the Gateway
+Run the comprehensive test suite to verify fallback functionality:
+```bash
+cd backend
+python test_gateway.py
+```
+
+This script tests:
+- Automatic fallback when primary model fails
+- Direct model access
+- Gateway health and responsiveness
+
 Real-time Streaming UI: Features a custom-built dashboard with a Strategy Stream for observing agent "thoughts" and a live Knowledge Graph visualizer.
 
 Automated CI/CD: Integrated GitHub Actions pipeline that automatically syncs code to Hugging Face, ensuring seamless production deployments.
