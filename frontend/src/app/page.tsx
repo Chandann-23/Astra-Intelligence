@@ -47,16 +47,14 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [isWarmingUp, setIsWarmingUp] = useState(false);
-  const [logs, setLogs] = useState<string[]>([
-    "[SYSTEM]: Astra Engine Initialized...",
-    "[SYSTEM]: Ready for command input."
-  ]);
+  const [logs, setLogs] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isGraphVisible, setIsGraphVisible] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState<'logs' | 'strategy' | 'graph' | null>(null);
   const [openContextId, setOpenContextId] = useState<string | null>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const strategyEndRef = useRef<HTMLDivElement>(null);
@@ -69,6 +67,11 @@ export default function Home() {
 
   const scrollToChatBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 3000);
   };
 
   useEffect(() => {
@@ -446,15 +449,27 @@ export default function Home() {
 
         {/* Recent History Section */}
         <div className="flex-1 flex flex-col items-center space-y-3 py-4">
-          <div className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" title="Recent Chat 1">
+          <button 
+            onClick={() => showToast("Previous Research Sessions: Coming Soon")}
+            className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" 
+            title="Previous Research Sessions"
+          >
             <MessageSquare size={14} className="text-zinc-400" />
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" title="Recent Chat 2">
+          </button>
+          <button 
+            onClick={() => showToast("Previous Research Sessions: Coming Soon")}
+            className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" 
+            title="Previous Research Sessions"
+          >
             <MessageSquare size={14} className="text-zinc-400" />
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" title="Recent Chat 3">
+          </button>
+          <button 
+            onClick={() => showToast("Previous Research Sessions: Coming Soon")}
+            className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" 
+            title="Previous Research Sessions"
+          >
             <MessageSquare size={14} className="text-zinc-400" />
-          </div>
+          </button>
         </div>
 
         {/* About Astra Button - Moved to Bottom */}
@@ -1006,6 +1021,23 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-zinc-900 border border-cyan-500/30 text-cyan-400 px-6 py-3 rounded-2xl shadow-2xl z-50 backdrop-blur-xl"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+              <span className="text-sm font-medium">{toast}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
