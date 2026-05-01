@@ -18,9 +18,11 @@ import {
   Zap,
   Activity,
   Maximize2,
+  Plus,
+  MessageSquare,
+  Info,
   X,
   Settings,
-  Info,
   ShieldCheck,
   Network,
   Eye
@@ -424,6 +426,47 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+      {/* Left Navigation Sidebar - Gemini Style */}
+      <div className="w-16 bg-zinc-900/60 backdrop-blur-xl border-r border-zinc-800/50 flex flex-col items-center py-4 space-y-4 z-10">
+        {/* New Chat Button */}
+        <button 
+          onClick={() => {
+            setMessages([]);
+            setLogs([]);
+            setTopic("");
+            setLoading(false);
+            setIsWarmingUp(false);
+            setActiveAgent(null);
+          }}
+          className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center hover:bg-cyan-500/20 hover:border-cyan-500/40 transition-all group"
+          title="New Chat"
+        >
+          <Plus size={16} className="text-cyan-400 group-hover:scale-110 transition-transform" />
+        </button>
+
+        {/* Recent History Section */}
+        <div className="flex-1 flex flex-col items-center space-y-3 py-4">
+          <div className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" title="Recent Chat 1">
+            <MessageSquare size={14} className="text-zinc-400" />
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" title="Recent Chat 2">
+            <MessageSquare size={14} className="text-zinc-400" />
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" title="Recent Chat 3">
+            <MessageSquare size={14} className="text-zinc-400" />
+          </div>
+        </div>
+
+        {/* About Astra Button - Moved to Bottom */}
+        <button 
+          onClick={() => setIsAboutOpen(!isAboutOpen)}
+          className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all group"
+          title="About Astra"
+        >
+          <Info size={16} className="text-zinc-400 group-hover:text-cyan-400 transition-colors" />
+        </button>
+      </div>
+
       {/* Sidebar - Terminal Logs (40% width) */}
       <AnimatePresence initial={false}>
         {isSidebarOpen && (
@@ -432,7 +475,7 @@ export default function Home() {
             animate={{ width: "40%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="border-l border-zinc-800/50 bg-zinc-950/40 backdrop-blur-xl flex flex-col overflow-hidden z-10 order-2"
+            className="border-l border-zinc-800/50 bg-zinc-950/40 backdrop-blur-xl flex flex-col overflow-hidden z-10"
           >
             <div className="p-4 border-b border-zinc-800/50 flex justify-between items-center bg-black/20">
               <span className="text-cyan-400 font-bold tracking-tighter text-sm flex items-center gap-2">
@@ -445,7 +488,89 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Logs Area (Stacked) */}
+            {/* RAG Source Feed (Stacked) - MOVED TO TOP */}
+            <div className="h-[35%] min-h-[250px] p-4 bg-zinc-950/20 flex flex-col border-t border-zinc-900/50 font-mono relative overflow-hidden">
+              {/* Scanline Overlay */}
+              <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] z-10 opacity-30" />
+              
+              <div className="flex items-center justify-between mb-4 relative z-20 bg-black/40 backdrop-blur-md p-2 rounded-lg border border-white/5">
+                <div className="flex items-center gap-2">
+                  <Database size={14} className="text-emerald-500" />
+                  <span className="text-[10px] text-emerald-500 uppercase tracking-[0.2em] font-bold">RAG_Source_Feed</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowClearConfirm(!showClearConfirm)}
+                      className="p-1 hover:bg-zinc-800 rounded transition-colors group"
+                      title="System Settings"
+                    >
+                      <Settings size={12} className={`text-zinc-500 group-hover:text-white ${showClearConfirm ? 'rotate-90 text-cyan-400' : ''} transition-transform`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar relative z-20">
+                <div className="space-y-4 p-2">
+                  <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">Retrieved Context</div>
+                  
+                  {/* Tavily Search Section */}
+                  <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                      <div className="text-xs text-emerald-300 font-mono">🔍 Tavily Search</div>
+                    </div>
+                    <div className="text-[10px] text-zinc-400 leading-relaxed">
+                      Real-time web sources fetched for current query
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="text-[9px] text-emerald-400/60">• Multiple authoritative sources</div>
+                      <div className="text-[9px] text-emerald-400/60">• Current information retrieval</div>
+                      <div className="text-[9px] text-emerald-400/60">• Context injection enabled</div>
+                    </div>
+                  </div>
+
+                  {/* Neo4j Memory Section */}
+                  <div className="p-3 bg-purple-950/20 border border-purple-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+                      <div className="text-xs text-purple-300 font-mono">🧠 Neo4j Memory</div>
+                    </div>
+                    <div className="text-[10px] text-zinc-400 leading-relaxed">
+                      Persistent knowledge retrieval from graph database
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="text-[9px] text-purple-400/60">• Agent state management</div>
+                      <div className="text-[9px] text-purple-400/60">• Historical context access</div>
+                      <div className="text-[9px] text-purple-400/60">• Knowledge graph traversal</div>
+                    </div>
+                  </div>
+
+                  {/* RAG Pipeline Status */}
+                  <div className="mt-4 p-3 bg-cyan-950/10 border border-cyan-500/20 rounded-lg">
+                    <div className="text-xs text-cyan-400 font-bold mb-2">RAG Pipeline Status</div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-zinc-400">Context Injection</span>
+                        <span className="text-[9px] text-emerald-400">ACTIVE</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-zinc-400">Source Attribution</span>
+                        <span className="text-[9px] text-emerald-400">TRACKED</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-zinc-400">Memory Retrieval</span>
+                        <span className="text-[9px] text-emerald-400">ENABLED</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div ref={strategyEndRef} />
+              </div>
+            </div>
+
+            {/* Logs Area (Stacked) - MOVED TO BOTTOM */}
             <div className="flex-1 flex flex-col min-h-0 relative border-b border-zinc-800/50 overflow-hidden">
               {/* Scanline Overlay */}
               <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] z-10 opacity-30" />
