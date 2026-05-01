@@ -9,12 +9,11 @@ import os
 from langgraph.graph import StateGraph, END
 from langchain_core.tools import tool
 
-# FORCE BETA VERSION: This is the definitive fix for the 404 error
-litellm.api_version = "v1beta"
-litellm.drop_params = True  # Cleans up any extra params that Gemini hates
+# GLM-5.1 Configuration via OpenRouter
+litellm.drop_params = True  # Ensure clean handshakes with OpenRouter
 
-# Use the specific cloud-stable string
-PRODUCTION_MODEL = "gemini/gemini-1.5-flash-latest"
+# Use GLM-5.1 for sustained reasoning and research
+PRODUCTION_MODEL = "openrouter/zhipu/glm-5.1:free"
 
 # Load environment variables
 load_dotenv()
@@ -32,18 +31,19 @@ class AgentState(TypedDict):
 def invoke_llm(prompt: str) -> str:
     """Invoke LLM through LiteLLM AI Gateway with fallback handling"""
     
-    # HARDCODED PRODUCTION MODE - NO LOCALHOST DEPENDENCY
-    print("🚀 Astra Engine: Running in DIRECT CLOUD mode (HARDCODED)")
+    # HARDCODED PRODUCTION MODE - GLM-5.1 POWERED
+    print("🚀 Astra Engine: Running on GLM-5.1 via OpenRouter")
     
     try:
-        # Production ONLY - use Gemini directly through LiteLLM with v1beta API
+        # Production ONLY - use GLM-5.1 via OpenRouter with increased timeout
         response = litellm.completion(
             model=PRODUCTION_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=1024,
-            api_key=os.getenv("GOOGLE_API_KEY")
-            # CRITICAL: NO base_url for cloud direct access
+            api_key=os.getenv("OPENROUTER_API_KEY"),
+            timeout=300  # GLM-5.1 supports long-horizon research
+            # CRITICAL: NO base_url - OpenRouter handles routing
         )
         
         return response.choices[0].message.content
@@ -51,17 +51,18 @@ def invoke_llm(prompt: str) -> str:
     except Exception as e:
         print(f"LiteLLM Error: {str(e)}")
         
-        # HARDCODED PRODUCTION FALLBACK - NO LOCALHOST
+        # HARDCODED PRODUCTION FALLBACK - GLM-5.1 OPTIMIZED
         try:
-            # Production fallback - try Hugging Face
+            # Production fallback - try GLM-5.1 direct via OpenRouter
             response = litellm.completion(
-                model="huggingface/mistral-7b-instruct",
+                model=PRODUCTION_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=1024,
-                api_key=os.getenv("HUGGINGFACE_TOKEN")
+                api_key=os.getenv("OPENROUTER_API_KEY"),
+                timeout=300
             )
-            print("Production Fallback: Hugging Face model used")
+            print("Production Fallback: GLM-5.1 direct via OpenRouter")
             
             return response.choices[0].message.content
             

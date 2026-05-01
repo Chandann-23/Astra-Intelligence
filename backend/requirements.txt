@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 python-dotenv
-# Core AI SDKs - LiteLLM AI Gateway Architecture (Safe Version)
+# Core AI SDKs - LiteLLM AI Gateway Architecture (Latest for GLM-5.1)
 litellm[proxy]==1.83.0
 apscheduler>=3.10.0
 # Hugging Face Integration (for fallback)

@@ -37,10 +37,11 @@ def health():
         return {
             "status": "online",
             "environment": "production",
+            "model": "GLM-5.1 via OpenRouter",
             "services": {
                 "neo4j": "connected" if (hasattr(neo4j_manager, 'driver') and neo4j_manager.driver) else "disconnected",
-                "gateway": "direct_provider", # Hardcoded to bypass localhost errors
-                "google": "configured" if os.getenv("GOOGLE_API_KEY") else "missing",
+                "gateway": "openrouter_direct",
+                "openrouter": "configured" if os.getenv("OPENROUTER_API_KEY") else "missing",
                 "huggingface": "configured" if os.getenv("HUGGINGFACE_TOKEN") else "missing"
             }
         }
