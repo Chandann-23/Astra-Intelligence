@@ -33,19 +33,46 @@ class AnalysisRequest(BaseModel):
 def health():
     try:
         from app.tools.graph_tool import neo4j_manager
-        # Check Hugging Face token for Inference API integration
+        import requests
+        
+        # Check LiteLLM proxy health
+        gateway_status = "down"
+        try:
+            response = requests.get("http://localhost:4000/health", timeout=5)
+            if response.status_code == 200:
+                gateway_status = "online"
+        except:
+            pass
+        
+        # Check API keys
+        google_key = os.environ.get("GOOGLE_API_KEY")
         hf_token = os.environ.get("HUGGINGFACE_TOKEN")
         
         return {
             "status": "online",
             "services": {
                 "neo4j": "connected" if (hasattr(neo4j_manager, 'driver') and neo4j_manager.driver) else "disconnected",
+                "gateway": gateway_status,
+                "google": "configured" if google_key else "missing",
                 "huggingface": "configured" if hf_token else "missing",
                 "tavily": "configured" if os.environ.get("TAVILY_API_KEY") else "missing"
             }
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+@app.get("/gateway/health")
+def gateway_health():
+    """Specific health check for LiteLLM proxy"""
+    try:
+        import requests
+        response = requests.get("http://localhost:4000/health", timeout=5)
+        if response.status_code == 200:
+            return {"status": "online", "gateway": "healthy"}
+        else:
+            return {"status": "error", "message": "Gateway returned non-200 status"}
+    except Exception as e:
+        return {"status": "GATEWAY_DOWN", "message": f"Cannot reach LiteLLM proxy: {str(e)}"}
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):

@@ -13,11 +13,52 @@ Astra Intelligence: Advanced Agentic Research Framework
 Astra Intelligence is a production-level agentic research system designed to move beyond simple LLM chat interfaces. It utilizes a multi-agent orchestration layer to conduct deep web research, synthesize complex information, and persist structured insights into a graph database for real-time visualization.
 
 🚀 Key Features
-Multi-Agent Orchestration: Utilizes CrewAI to manage specialized agents (e.g., Lead Tech Researcher) that collaborate to fulfill complex research goals.
+AI Gateway Architecture: Uses LiteLLM to create a unified "astra-brain" model with automatic fallback between Gemini and Mistral, eliminating 404 errors.
+
+Multi-Agent Orchestration: Utilizes LangGraph to manage specialized agents (researcher, critic, storage) that collaborate to fulfill complex research goals.
 
 High-Memory Backend: Hosted on Hugging Face Spaces with a 16GB RAM Docker environment to handle heavy agentic workloads and long-running research sequences.
 
 Knowledge Graph Persistence: Automatically extracts entities and relationships from research data and stores them in Neo4j, providing a structured "memory" for the system.
+
+## Quick Start (Local Development)
+
+1. **Setup Environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   ```
+
+3. **Start Astra Engine**
+   ```bash
+   # Windows
+   start_astra.bat
+   
+   # Linux/Mac
+   chmod +x start_astra.sh
+   ./start_astra.sh
+   ```
+
+4. **Access Services**
+   - Astra Backend: http://localhost:8000
+   - LiteLLM Proxy: http://localhost:4000
+   - Health Check: http://localhost:8000/health
+   - Gateway Health: http://localhost:8000/gateway/health
+
+## AI Gateway Configuration
+
+The `config.yaml` file defines the AI Gateway routing:
+- **Primary Model**: `gemini/gemini-1.5-flash` with v1 endpoint
+- **Fallback Model**: `mistral/mistral-nemo` for reliability
+- **Unified Alias**: `astra-brain` used throughout the application
+
+This architecture automatically handles 404 errors by retrying with the fallback provider.
 
 Real-time Streaming UI: Features a custom-built dashboard with a Strategy Stream for observing agent "thoughts" and a live Knowledge Graph visualizer.
 

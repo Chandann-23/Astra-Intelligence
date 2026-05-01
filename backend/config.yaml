@@ -1,0 +1,42 @@
+model_list:
+  # Primary stable model alias for Astra
+  - model_name: astra-brain
+    litellm_params:
+      model: gemini/gemini-1.5-flash
+      api_base: "https://generativelanguage.googleapis.com/v1"
+      api_key: os.environ/GOOGLE_API_KEY
+      # Force v1 endpoint to avoid 404 errors
+      extra_headers:
+        "x-goog-api-key": os.environ/GOOGLE_API_KEY
+  
+  # Fallback model when Gemini fails
+  - model_name: astra-brain
+    litellm_params:
+      model: mistral/mistral-nemo
+      api_key: os.environ/HUGGINGFACE_TOKEN
+  
+  # Direct access models (for health checks)
+  - model_name: gemini-direct
+    litellm_params:
+      model: gemini/gemini-1.5-flash
+      api_base: "https://generativelanguage.googleapis.com/v1"
+      api_key: os.environ/GOOGLE_API_KEY
+  
+  - model_name: mistral-direct
+    litellm_params:
+      model: mistral/mistral-nemo
+      api_key: os.environ/HUGGINGFACE_TOKEN
+
+# General settings
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  database_url: os.environ/LITELLM_DATABASE_URL
+  
+# Retry and fallback configuration
+retry_config:
+  num_retries: 3
+  retry_delay: 1
+  
+# Load balancing
+load_balancing:
+  strategy: "simple_round_robin"

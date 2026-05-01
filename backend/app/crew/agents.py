@@ -3,8 +3,8 @@ import json
 from typing import TypedDict, Annotated, Generator
 from dotenv import load_dotenv
 
-# LangChain / LangGraph Imports
-from langchain_huggingface import HuggingFaceEndpoint
+# LiteLLM AI Gateway Architecture
+import litellm
 from langgraph.graph import StateGraph, END
 from langchain_core.tools import tool
 
@@ -19,17 +19,36 @@ class AgentState(TypedDict):
     revision_count: int
     storage_result: str  # Added to prevent key errors in storage_node
 
-# Phase 2: Initialize Hugging Face Inference API LLM
-# Using Mistral Nemo for stable serverless API with high uptime
-llm = HuggingFaceEndpoint(
-    repo_id='mistralai/Mistral-Nemo-Instruct-2407',
-    huggingfacehub_api_token=os.getenv('HUGGINGFACE_TOKEN'),
-    task='text-generation',
-    # Adding these parameters ensures the client communicates correctly
-    content_type='application/json',
-    temperature=0.7,
-    max_new_tokens=1024
-)
+# Phase 2: Initialize LiteLLM AI Gateway
+# Using astra-brain unified model with automatic fallback handling
+def invoke_llm(prompt: str) -> str:
+    """Invoke LLM through LiteLLM AI Gateway with fallback handling"""
+    try:
+        response = litellm.completion(
+            model="astra-brain",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=1024,
+            base_url="http://localhost:4000"
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"LiteLLM Error: {str(e)}")
+        # Fallback to direct Gemini if gateway is down
+        try:
+            response = litellm.completion(
+                model="gemini/gemini-1.5-flash",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=1024,
+                api_key=os.getenv("GOOGLE_API_KEY"),
+                api_base="https://generativelanguage.googleapis.com/v1"
+            )
+            print("Fallback: Direct Gemini API used")
+            return response.choices[0].message.content
+        except Exception as fallback_error:
+            print(f"Fallback also failed: {str(fallback_error)}")
+            return f"Error: Unable to process request - {str(e)}"
 
 # Phase 2: Create researcher_node
 def researcher_node(state: AgentState) -> AgentState:
@@ -45,8 +64,8 @@ def researcher_node(state: AgentState) -> AgentState:
     Provide a detailed analysis with insights, data points, and conclusions.
     """
     
-    response = llm.invoke(prompt)
-    state["research_output"] = response.content
+    response = invoke_llm(prompt)
+    state["research_output"] = response
     return state
 
 # Phase 2: Create critic_node
@@ -67,8 +86,8 @@ def critic_node(state: AgentState) -> AgentState:
     Otherwise, provide specific feedback for revision.
     """
     
-    response = llm.invoke(prompt)
-    state["critique"] = response.content
+    response = invoke_llm(prompt)
+    state["critique"] = response
     return state
 
 # Phase 2: Create storage_node
