@@ -36,14 +36,14 @@ def invoke_llm(prompt: str) -> str:
     print(f"🚀 Astra Engine: Running on GLM-5.1 ({PRODUCTION_MODEL})")
     
     try:
-        # LiteLLM call optimized for GLM-5.1's long-context capabilities
+        # LiteLLM call optimized for GLM-5.1's long-horizon capabilities
         response = litellm.completion(
             model=PRODUCTION_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=2048, # Increased for detailed GLM output
+            max_tokens=4096, # Increased to prevent mid-sentence cutoffs
             api_key=api_key,
-            timeout=300 
+            timeout=300 # Supports GLM-5.1's 8-hour research sessions
         )
         return response.choices[0].message.content
         
