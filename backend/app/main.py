@@ -82,6 +82,9 @@ async def stream_analysis(request: AnalysisRequest):
                         
                         status_update = status_map.get(node_name, {"status": "processing", "message": f"Executing {node_name}...", "node": node_name})
                         
+                        # 🚀 This is what populates the Agentic Orchestration Trace
+                        status_update["trace"] = f"Agent {node_name.upper()} is active: processing core logic..."
+                        
                         if "research_output" in node_state:
                             content = node_state["research_output"]
                             status_update["partial_result"] = content[:500] + "..." if len(content) > 500 else content

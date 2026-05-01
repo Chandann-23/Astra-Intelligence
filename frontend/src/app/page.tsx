@@ -123,8 +123,10 @@ export default function Home() {
             
             // Handle LangGraph status events
             if (data.status) {
-              // Turn off warm-up state when first data chunk arrives
-              setIsWarmingUp(false);
+              // Only turn off warm-up state when actual research content arrives
+              if (data.partial_result || (data.result && data.result.trim() !== '')) {
+                setIsWarmingUp(false);
+              }
               setLogs(prev => [...prev, `[${data.node?.toUpperCase() || 'SYSTEM'}]: ${data.message}`]);
               
               // Update active agent based on node
