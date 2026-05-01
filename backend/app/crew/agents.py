@@ -61,9 +61,11 @@ def invoke_llm(prompt: str) -> str:
 
 def researcher_node(state: AgentState) -> AgentState:
     """Analyze the query and generate a research report"""
-    # Ensure revision_count is initialized
+    # Ensure revision_count is initialized and increment it
     if state.get("revision_count") is None:
         state["revision_count"] = 0
+    else:
+        state["revision_count"] += 1
         
     prompt = f"""
     You are a research analyst. Analyze the following query:
