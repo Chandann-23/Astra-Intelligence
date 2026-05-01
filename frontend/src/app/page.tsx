@@ -477,19 +477,14 @@ export default function Home() {
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="border-l border-zinc-800/50 bg-zinc-950/40 backdrop-blur-xl flex flex-col overflow-hidden z-10"
           >
-            <div className="p-4 border-b border-zinc-800/50 flex justify-between items-center bg-black/20">
+            <div className="p-4 border-b border-zinc-800/50 flex justify-center items-center bg-black/20">
               <span className="text-cyan-400 font-bold tracking-tighter text-sm flex items-center gap-2">
                 <Database size={16} /> ENGINE_INSIGHTS
               </span>
-              <div className="flex items-center gap-4">
-                <button onClick={() => setIsSidebarOpen(false)} className="text-zinc-500 hover:text-white">
-                  <ChevronRight size={20} />
-                </button>
-              </div>
             </div>
 
-            {/* RAG Source Feed (Stacked) - MOVED TO TOP */}
-            <div className="h-[35%] min-h-[250px] p-4 bg-zinc-950/20 flex flex-col border-t border-zinc-900/50 font-mono relative overflow-hidden">
+            {/* Unified RAG Source Feed (Top 50%) */}
+            <div className="h-1/2 p-4 bg-zinc-950/20 flex flex-col border-t border-zinc-900/50 font-mono relative overflow-hidden">
               {/* Scanline Overlay */}
               <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] z-10 opacity-30" />
               
@@ -570,8 +565,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Logs Area (Stacked) - MOVED TO BOTTOM */}
-            <div className="flex-1 flex flex-col min-h-0 relative border-b border-zinc-800/50 overflow-hidden">
+            {/* Process Logs (Bottom 50%) */}
+            <div className="h-1/2 flex flex-col min-h-0 relative border-b border-zinc-800/50 overflow-hidden">
               {/* Scanline Overlay */}
               <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] z-10 opacity-30" />
               
@@ -734,36 +729,24 @@ export default function Home() {
             <ChevronLeft size={20} className="group-hover:scale-110 transition-transform" />
           </button>
         )}
+        {isSidebarOpen && (
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="absolute right-4 top-24 z-20 bg-zinc-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl text-cyan-400 hover:text-white hover:border-cyan-500/50 transition-all shadow-2xl group"
+          >
+            <ChevronRight size={20} className="group-hover:scale-110 transition-transform" />
+          </button>
+        )}
 
         {/* Chat Header */}
         <header 
-          className="p-6 border-b border-cyan-500/30 flex justify-between items-center bg-[#0a0a0a] relative z-30"
+          className="p-6 border-b border-cyan-500/30 flex justify-center items-center bg-[#0a0a0a] relative z-30"
         >
-          <div className="flex-1">
-            <button
-              onClick={() => setIsAboutOpen(true)}
-              className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-zinc-400 hover:text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all uppercase tracking-widest flex items-center gap-2 group"
-            >
-              <Info size={14} className="group-hover:rotate-12 transition-transform" />
-              About_Astra
-            </button>
-          </div>
-          <div className="text-center flex-1">
-            <h1 className="text-2xl font-[600] tracking-tighter text-cyan-400 font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>ASTRA INTELLIGENCE</h1>
-            <p className="text-[10px] text-zinc-600 uppercase tracking-[0.3em] mt-1 font-sans" style={{ fontFamily: "'Inter', sans-serif" }}>Advanced Agentic Research Framework</p>
-          </div>
-          <div className="flex-1 flex justify-end gap-3">
-            <button
-              onClick={() => setIsGraphVisible(!isGraphVisible)}
-              className={`p-2 rounded-full border transition-all ${
-                isGraphVisible 
-                  ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]' 
-                  : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:text-white'
-              }`}
-              title="Toggle Knowledge Graph PiP"
-            >
-              <Cpu size={20} />
-            </button>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
+              Astra Engine
+            </h1>
+            <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Multi-Agent Intelligence System</p>
           </div>
         </header>
 
