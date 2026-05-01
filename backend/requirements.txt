@@ -3,6 +3,7 @@ uvicorn
 python-dotenv
 # Core AI SDKs - LiteLLM AI Gateway Architecture (Safe Version)
 litellm[proxy]==1.83.0
+apscheduler>=3.10.0
 # Hugging Face Integration (for fallback)
 huggingface_hub==0.23.2
 langchain==0.2.17
