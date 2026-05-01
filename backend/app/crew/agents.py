@@ -20,9 +20,9 @@ class AgentState(TypedDict):
     storage_result: str  # Added to prevent key errors in storage_node
 
 # Phase 2: Initialize Hugging Face Inference API LLM
-# Using Llama-3.3-70B for high-quality research with stable client communication
+# Using Mistral Nemo for stable serverless API with high uptime
 llm = HuggingFaceEndpoint(
-    repo_id='meta-llama/Llama-3.3-70B-Instruct',
+    repo_id='mistralai/Mistral-Nemo-Instruct-2407',
     huggingfacehub_api_token=os.getenv('HUGGINGFACE_TOKEN'),
     task='text-generation',
     # Adding these parameters ensures the client communicates correctly
