@@ -72,6 +72,7 @@ def researcher_node(state: AgentState) -> AgentState:
     Previous critique: {state.get('critique', '')}
     Revision count: {state['revision_count']}
     
+    Start directly with # Executive Summary or the first heading. Do not include any formal report headers, dates, or analyst role information.
     Provide a detailed analysis with insights, data points, and conclusions.
     """
     

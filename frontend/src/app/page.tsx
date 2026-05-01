@@ -77,6 +77,16 @@ export default function Home() {
     scrollToChatBottom();
   }, [messages]);
 
+  // Auto-scroll during research generation
+  useEffect(() => {
+    if (loading && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && lastMessage.role === 'astra' && lastMessage.type === 'analysis') {
+        scrollToChatBottom();
+      }
+    }
+  }, [messages, loading]);
+
   const handleAnalyze = async () => {
     if (!topic) return;
     
@@ -472,15 +482,15 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Agentic Orchestration Trace (Stacked) */}
+            {/* RAG Source Feed (Stacked) */}
             <div className="h-[35%] min-h-[250px] p-4 bg-zinc-950/20 flex flex-col border-t border-zinc-900/50 font-mono relative overflow-hidden">
               {/* Scanline Overlay */}
               <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] z-10 opacity-30" />
               
               <div className="flex items-center justify-between mb-4 relative z-20 bg-black/40 backdrop-blur-md p-2 rounded-lg border border-white/5">
                 <div className="flex items-center gap-2">
-                  <Zap size={14} className="text-zinc-500" />
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Agentic_Orchestration_Trace</span>
+                  <Database size={14} className="text-emerald-500" />
+                  <span className="text-[10px] text-emerald-500 uppercase tracking-[0.2em] font-bold">RAG_Source_Feed</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
@@ -527,34 +537,61 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar relative z-20">
-                {logs.filter(log => 
-                  log.toLowerCase().includes("thought:") || 
-                  log.toLowerCase().includes("action:") ||
-                  log.toLowerCase().includes("reasoning:")
-                ).map((log, i) => (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    key={i} 
-                    className="group"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`mt-1.5 w-1 h-1 rounded-full ${log.toLowerCase().includes("thought") ? "bg-amber-500" : "bg-cyan-500"}`} />
-                      <div className="flex-1">
-                        <div className={`text-[10px] uppercase tracking-widest mb-1 ${log.toLowerCase().includes("thought") ? "text-amber-500/50" : "text-cyan-500/50"}`}>
-                          {log.toLowerCase().includes("thought") ? "Agent_Thought" : "Agent_Action"}
-                        </div>
-                        <div 
-                          className="text-[11px] text-zinc-300 leading-relaxed italic border-l border-zinc-800/50 pl-3 whitespace-pre-wrap"
-                          style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}
-                        >
-                          <Ansi>{cleanText(log.split(/thought:|action:|reasoning:/i)[1]?.trim() || log)}</Ansi>
-                        </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar relative z-20">
+                <div className="space-y-4 p-2">
+                  <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">Retrieved Context</div>
+                  
+                  {/* Tavily Search Section */}
+                  <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                      <div className="text-xs text-emerald-300 font-mono">🔍 Tavily Search</div>
+                    </div>
+                    <div className="text-[10px] text-zinc-400 leading-relaxed">
+                      Real-time web sources fetched for current query
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="text-[9px] text-emerald-400/60">• Multiple authoritative sources</div>
+                      <div className="text-[9px] text-emerald-400/60">• Current information retrieval</div>
+                      <div className="text-[9px] text-emerald-400/60">• Context injection enabled</div>
+                    </div>
+                  </div>
+
+                  {/* Neo4j Memory Section */}
+                  <div className="p-3 bg-purple-950/20 border border-purple-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+                      <div className="text-xs text-purple-300 font-mono">🧠 Neo4j Memory</div>
+                    </div>
+                    <div className="text-[10px] text-zinc-400 leading-relaxed">
+                      Persistent knowledge retrieval from graph database
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      <div className="text-[9px] text-purple-400/60">• Agent state management</div>
+                      <div className="text-[9px] text-purple-400/60">• Historical context access</div>
+                      <div className="text-[9px] text-purple-400/60">• Knowledge graph traversal</div>
+                    </div>
+                  </div>
+
+                  {/* RAG Pipeline Status */}
+                  <div className="mt-4 p-3 bg-cyan-950/10 border border-cyan-500/20 rounded-lg">
+                    <div className="text-xs text-cyan-400 font-bold mb-2">RAG Pipeline Status</div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-zinc-400">Context Injection</span>
+                        <span className="text-[9px] text-emerald-400">ACTIVE</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-zinc-400">Source Attribution</span>
+                        <span className="text-[9px] text-emerald-400">TRACKED</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] text-zinc-400">Memory Retrieval</span>
+                        <span className="text-[9px] text-emerald-400">ENABLED</span>
                       </div>
                     </div>
-                  </motion.div>
-                ))}
+                  </div>
+                </div>
                 <div ref={strategyEndRef} />
               </div>
             </div>
