@@ -5,15 +5,15 @@ from dotenv import load_dotenv
 
 # LiteLLM AI Gateway Architecture
 import litellm
-import os
 from langgraph.graph import StateGraph, END
 from langchain_core.tools import tool
 
-# GLM-5.1 Configuration via Hugging Face Gateway
-PRODUCTION_MODEL = "huggingface/zai-org/GLM-5.1"
-
-# Load environment variables
+# Load environment variables FIRST
 load_dotenv()
+
+# GLM-5.1 Configuration via Hugging Face Gateway
+# Ensure this matches the model name on HF or your provider's expected string
+PRODUCTION_MODEL = "huggingface/zai-org/GLM-5.1"
 
 # Phase 2: Define AgentState
 class AgentState(TypedDict):
@@ -21,118 +21,100 @@ class AgentState(TypedDict):
     research_output: str
     critique: str
     revision_count: int
-    storage_result: str  # Added to prevent key errors in storage_node
+    storage_result: str 
 
-# Phase 2: Initialize LiteLLM AI Gateway
-# Using astra-brain unified model with automatic fallback handling
 def invoke_llm(prompt: str) -> str:
-    """Invoke LLM through LiteLLM AI Gateway with fallback handling"""
+    """Invoke LLM through LiteLLM AI Gateway with robust error handling"""
     
-    # HARDCODED PRODUCTION MODE - GLM-5.1 POWERED
-    print("🚀 Astra Engine: Running on GLM-5.1 via Hugging Face Gateway")
+    api_key = os.getenv("HUGGINGFACE_API_KEY")
+    
+    # Validation check to stop "False" key errors before they hit the API
+    if not api_key:
+        print("❌ CRITICAL ERROR: HUGGINGFACE_API_KEY is missing from environment!")
+        return "Error: HUGGINGFACE_API_KEY not found. Please check Hugging Face Secrets."
+
+    print(f"🚀 Astra Engine: Running on GLM-5.1 ({PRODUCTION_MODEL})")
     
     try:
-        # Production ONLY - use GLM-5.1 via Hugging Face Gateway with 300s timeout
+        # LiteLLM call optimized for GLM-5.1's long-context capabilities
         response = litellm.completion(
             model=PRODUCTION_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=1024,
-            api_key=os.getenv("HUGGINGFACE_API_KEY"),
-            timeout=300  # GLM-5.1 supports 8-hour research sessions
-            # CRITICAL: NO base_url - LiteLLM handles routing
+            max_tokens=2048, # Increased for detailed GLM output
+            api_key=api_key,
+            timeout=300 
         )
-        
         return response.choices[0].message.content
         
     except Exception as e:
-        print(f"LiteLLM Error: {str(e)}")
+        error_msg = str(e)
+        print(f"LiteLLM Error: {error_msg}")
         
-        # HARDCODED PRODUCTION FALLBACK - GLM-5.1 OPTIMIZED
-        try:
-            # Production fallback - try GLM-5.1 direct via Hugging Face Gateway
-            response = litellm.completion(
-                model=PRODUCTION_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=1024,
-                api_key=os.getenv("HUGGINGFACE_API_KEY"),
-                timeout=300
-            )
-            print("Production Fallback: GLM-5.1 direct via Hugging Face Gateway")
+        # Check specifically for authentication issues
+        if "401" in error_msg or "auth" in error_msg.lower():
+            return "Error: Authentication failed. Verify HUGGINGFACE_API_KEY."
             
-            return response.choices[0].message.content
-            
-        except Exception as fallback_error:
-            print(f"Fallback also failed: {str(fallback_error)}")
-            return f"Error: Unable to process request - {str(e)}"
+        return f"Error: {error_msg}"
 
-# Phase 2: Create researcher_node
+# --- Node Definitions ---
+
 def researcher_node(state: AgentState) -> AgentState:
     """Analyze the query and generate a research report"""
+    # Ensure revision_count is initialized
+    if state.get("revision_count") is None:
+        state["revision_count"] = 0
+        
     prompt = f"""
-    You are a research analyst. Analyze the following query and generate a comprehensive report:
-    
+    You are a research analyst. Analyze the following query:
     Query: {state.get('query', '')}
     Previous research: {state.get('research_output', '')}
     Previous critique: {state.get('critique', '')}
-    Revision count: {state.get('revision_count', 0)}
+    Revision count: {state['revision_count']}
     
     Provide a detailed analysis with insights, data points, and conclusions.
     """
     
     response = invoke_llm(prompt)
     
-    # Check for error responses to prevent recursion limit
-    if "Error:" in response or "error" in response.lower():
-        print(f"Researcher node error detected: {response}")
-        state["research_output"] = f"Research failed due to LLM error: {response}"
-        state["revision_count"] = 5  # Force end condition
-        return state
-    
-    state["research_output"] = response
+    if "Error:" in response:
+        state["research_output"] = response
+        # Terminate early on API failure
+        state["revision_count"] = 99 
+    else:
+        state["research_output"] = response
+        
     return state
 
-# Phase 2: Create critic_node
 def critic_node(state: AgentState) -> AgentState:
     """Review the report for depth and accuracy"""
+    # Don't run critique if research failed
+    if "Error:" in state.get("research_output", ""):
+        return state
+
     prompt = f"""
     You are a critical reviewer. Analyze the following research report:
+    {state.get('research_output', '')}
     
-    Research Output: {state.get('research_output', '')}
-    
-    Provide constructive feedback on:
-    1. Accuracy and factual correctness
-    2. Depth of analysis
-    3. Completeness
-    4. Areas for improvement
-    
-    If the report is excellent and needs no changes, respond with "APPROVED".
-    Otherwise, provide specific feedback for revision.
+    If the report is excellent, respond ONLY with "APPROVED".
+    Otherwise, provide feedback.
     """
     
     response = invoke_llm(prompt)
-    
-    # Check for error responses to prevent recursion limit
-    if "Error:" in response or "error" in response.lower():
-        print(f"Critic node error detected: {response}")
-        state["critique"] = f"Critique failed due to LLM error: {response}"
-        state["revision_count"] = 5  # Force end condition
-        return state
-    
     state["critique"] = response
     return state
 
-# Phase 2: Create storage_node
 def storage_node(state: AgentState) -> AgentState:
     """Save the final research to Neo4j"""
+    # Skip storage if there was an error
+    if "Error:" in state.get("research_output", ""):
+        state["storage_result"] = "Skipped: Research contained errors."
+        return state
+
     try:
         from app.tools.graph_tool import Neo4jManager
-        
-        # Create a new Neo4jManager instance
         neo4j_manager = Neo4jManager()
         
-        # Create a simple node with the research output
         cypher_query = """
         CREATE (r:Research {
             query: $query,
@@ -141,86 +123,46 @@ def storage_node(state: AgentState) -> AgentState:
         })
         RETURN r
         """
-        
         params = {
             "query": state.get('query', ''),
             "content": state.get('research_output', '')
         }
-        
-        result = neo4j_manager.execute_query(cypher_query, params)
-        state["storage_result"] = f"Research saved to Neo4j"
-        
+        neo4j_manager.execute_query(cypher_query, params)
+        state["storage_result"] = "Success: Saved to Neo4j"
     except Exception as e:
         state["storage_result"] = f"Storage error: {str(e)}"
     
     return state
 
-# Phase 2: Workflow Logic
+# --- Workflow Logic ---
+
 def should_continue(state: AgentState) -> str:
-    """Determine if we should continue revising or move to storage"""
     critique = state.get('critique', '')
-    revision_count = state.get('revision_count', 0)
-    research_output = state.get('research_output', '')
+    rev_count = state.get('revision_count', 0)
     
-    # Check for errors to prevent infinite loops - skip all nodes on research error
-    if "Error:" in research_output or "error" in research_output.lower():
-        print("Error detected in research output, forcing end of workflow")
+    # Immediate exit on errors
+    if "Error:" in state.get("research_output", "") or rev_count > 5:
         return "END"
     
-    # If critique says approved or we've revised twice, move to storage
-    if "APPROVED" in critique.upper() or revision_count >= 2:
+    if "APPROVED" in critique.upper() or rev_count >= 2:
         return "storage"
-    else:
-        # Increment revision count
-        state["revision_count"] = revision_count + 1
-        return "researcher"
+    
+    # Update revision count in state before looping back
+    state["revision_count"] = rev_count + 1
+    return "researcher"
 
-# Create the graph
+# Build Graph
 workflow = StateGraph(AgentState)
-
-# Add nodes
 workflow.add_node("researcher", researcher_node)
 workflow.add_node("critic", critic_node)
 workflow.add_node("storage", storage_node)
 
-# Add edges
 workflow.set_entry_point("researcher")
 workflow.add_edge("researcher", "critic")
 workflow.add_conditional_edges(
     "critic", 
     should_continue, 
-    {
-        "researcher": "researcher",
-        "storage": "storage",
-        "END": END
-    }
+    {"researcher": "researcher", "storage": "storage", "END": END}
 )
 workflow.add_edge("storage", END)
-
-# Final Compiled Graph
 app_graph = workflow.compile()
-
-# Tool definitions (kept for your integration needs)
-@tool("tavily_search")
-def search_tool(query: str):
-    """Search web for real-time information."""
-    from tavily import TavilyClient
-    t_api_key = os.environ.get("TAVILY_API_KEY")
-    if not t_api_key:
-        return "Error: Missing Tavily API Key."
-    try:
-        client = TavilyClient(api_key=t_api_key)
-        result = client.search(query, max_results=5)
-        return f"Search results: {result}"
-    except Exception as e:
-        return f"Search error: {str(e)}"
-
-@tool("graph_tool")
-def graph_tool_executor(query: str):
-    """Execute a Cypher query against the Neo4j database."""
-    from app.tools.graph_tool import neo4j_manager
-    try:
-        result = neo4j_manager.execute_query(query) 
-        return f"Success: {result}"
-    except Exception as e:
-        return f"Database Error: {str(e)}"
