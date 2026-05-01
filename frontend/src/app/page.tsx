@@ -133,8 +133,8 @@ export default function Home() {
             
             // Handle LangGraph status events
             if (data.status) {
-              // Only turn off warm-up state when actual research content arrives
-              if (data.partial_result || (data.result && data.result.trim() !== '')) {
+              // Only turn off warm-up state when research is truly complete
+              if (data.status === 'completed' && data.result && data.result.trim() !== '') {
                 setIsWarmingUp(false);
               }
               setLogs(prev => [...prev, `[${data.node?.toUpperCase() || 'SYSTEM'}]: ${data.message}`]);

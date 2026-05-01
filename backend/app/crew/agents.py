@@ -11,9 +11,9 @@ from langchain_core.tools import tool
 # Load environment variables FIRST
 load_dotenv()
 
-# GLM-5.1 Configuration via Hugging Face Gateway
-# Ensure this matches the model name on HF or your provider's expected string
-PRODUCTION_MODEL = "huggingface/zai-org/GLM-5.1"
+# GLM-5.1 Configuration via SambaNova Free Tier
+# Bypass Hugging Face credit limits while maintaining GLM-5.1 architecture
+PRODUCTION_MODEL = "sambanova/GloMo-5.1"
 
 # Phase 2: Define AgentState
 class AgentState(TypedDict):
@@ -26,12 +26,12 @@ class AgentState(TypedDict):
 def invoke_llm(prompt: str) -> str:
     """Invoke LLM through LiteLLM AI Gateway with robust error handling"""
     
-    api_key = os.getenv("HUGGINGFACE_API_KEY")
+    api_key = os.getenv("SAMBANOVA_API_KEY")
     
     # Validation check to stop "False" key errors before they hit the API
     if not api_key:
-        print("❌ CRITICAL ERROR: HUGGINGFACE_API_KEY is missing from environment!")
-        return "Error: HUGGINGFACE_API_KEY not found. Please check Hugging Face Secrets."
+        print("❌ CRITICAL ERROR: SAMBANOVA_API_KEY is missing from environment!")
+        return "Error: SAMBANOVA_API_KEY not found. Please check SambaNova Secrets."
 
     print(f"🚀 Astra Engine: Running on GLM-5.1 ({PRODUCTION_MODEL})")
     
@@ -72,7 +72,6 @@ def researcher_node(state: AgentState) -> AgentState:
     Previous critique: {state.get('critique', '')}
     Revision count: {state['revision_count']}
     
-    Start directly with # Executive Summary or the first heading. Do not include any formal report headers, dates, or analyst role information.
     Provide a detailed analysis with insights, data points, and conclusions.
     """
     
