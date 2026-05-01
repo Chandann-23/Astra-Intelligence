@@ -62,7 +62,7 @@ Windows (CMD): ./scripts/start_astra.bat
 
 Linux/macOS: bash ./scripts/start_astra.sh
 
-## ☁️ Hugging Face Integration ##
+# ☁️ Hugging Face Integration #
 This repository is pre-configured for Hugging Face Spaces.
 
 *Requirements:* Ensure requirements.txt and Dockerfile remain in the root for the Python backend.
