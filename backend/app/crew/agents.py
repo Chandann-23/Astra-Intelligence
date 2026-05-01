@@ -24,64 +24,36 @@ class AgentState(TypedDict):
 def invoke_llm(prompt: str) -> str:
     """Invoke LLM through LiteLLM AI Gateway with fallback handling"""
     
-    # Explicit environment detection - no more guessing!
-    ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
-    is_production = (ENVIRONMENT == "production")
-    
-    if is_production:
-        print("🚀 Astra Engine: Running in DIRECT CLOUD mode")
-    else:
-        print("💻 Astra Engine: Running in LOCAL PROXY mode")
+    # HARDCODED PRODUCTION MODE - NO LOCALHOST DEPENDENCY
+    print("🚀 Astra Engine: Running in DIRECT CLOUD mode (HARDCODED)")
     
     try:
-        if is_production:
-            # Production - use Gemini directly through LiteLLM (let LiteLLM handle base_url)
-            response = litellm.completion(
-                model="gemini/gemini-1.5-flash",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=1024,
-                api_key=os.getenv("GOOGLE_API_KEY")
-                # CRITICAL: NO base_url for cloud direct access
-            )
-        else:
-            # Local development - use LiteLLM proxy with OpenAI-compatible endpoint
-            response = litellm.completion(
-                model="openai/astra-brain",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=1024,
-                base_url="http://localhost:48583/v1",
-                api_key=os.getenv("LITELLM_MASTER_KEY") or os.getenv("OPENAI_API_KEY")
-            )
+        # Production ONLY - use Gemini directly through LiteLLM (let LiteLLM handle base_url)
+        response = litellm.completion(
+            model="gemini/gemini-1.5-flash",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=1024,
+            api_key=os.getenv("GOOGLE_API_KEY")
+            # CRITICAL: NO base_url for cloud direct access
+        )
         
         return response.choices[0].message.content
         
     except Exception as e:
         print(f"LiteLLM Error: {str(e)}")
         
-        # Smart fallback based on environment
+        # HARDCODED PRODUCTION FALLBACK - NO LOCALHOST
         try:
-            if not is_production:
-                # Local fallback - try direct Gemini
-                response = litellm.completion(
-                    model="gemini/gemini-1.5-flash",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.7,
-                    max_tokens=1024,
-                    api_key=os.getenv("GOOGLE_API_KEY")
-                )
-                print("Local Fallback: Direct Gemini API used")
-            else:
-                # Production fallback - try Hugging Face
-                response = litellm.completion(
-                    model="huggingface/mistral-7b-instruct",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.7,
-                    max_tokens=1024,
-                    api_key=os.getenv("HUGGINGFACE_TOKEN")
-                )
-                print("Production Fallback: Hugging Face model used")
+            # Production fallback - try Hugging Face
+            response = litellm.completion(
+                model="huggingface/mistral-7b-instruct",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=1024,
+                api_key=os.getenv("HUGGINGFACE_TOKEN")
+            )
+            print("Production Fallback: Hugging Face model used")
             
             return response.choices[0].message.content
             

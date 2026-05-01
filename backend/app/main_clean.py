@@ -43,22 +43,8 @@ def health():
         from app.tools.graph_tool import neo4j_manager
         import requests
         
-        # Explicit environment detection - no more guessing!
-        ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
-        is_production = (ENVIRONMENT == "production")
-        
-        # Check LiteLLM proxy health (only in local development)
-        gateway_status = "direct_provider" if is_production else "down"
-        
-        if not is_production:
-            try:
-                response = requests.get("http://localhost:48583/health", timeout=5)
-                if response.status_code == 200:
-                    gateway_status = "proxy_online"
-                else:
-                    gateway_status = "proxy_down"
-            except:
-                gateway_status = "proxy_down"
+        # HARDCODED PRODUCTION MODE - NO LOCALHOST DEPENDENCY
+        gateway_status = "direct_provider"  # Always direct provider in production
         
         # Check API keys
         google_key = os.environ.get("GOOGLE_API_KEY")
@@ -81,24 +67,10 @@ def health():
 def gateway_health():
     """Specific health check for LiteLLM proxy or direct provider"""
     try:
-        import requests
-        
-        # Explicit environment detection - no more guessing!
-        ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
-        is_production = (ENVIRONMENT == "production")
-        
-        # In production, use direct provider access
-        if is_production:
-            return {"status": "online", "gateway": "direct_provider"}
-        
-        # Local development - check LiteLLM proxy
-        response = requests.get("http://localhost:48583/health", timeout=5)
-        if response.status_code == 200:
-            return {"status": "online", "gateway": "proxy_healthy"}
-        else:
-            return {"status": "error", "message": "Gateway returned non-200 status"}
+        # HARDCODED PRODUCTION MODE - NO LOCALHOST DEPENDENCY
+        return {"status": "online", "gateway": "direct_provider"}
     except Exception as e:
-        return {"status": "GATEWAY_DOWN", "message": f"Cannot reach LiteLLM proxy: {str(e)}"}
+        return {"status": "error", "message": f"Gateway check failed: {str(e)}"}
 
 @app.get("/test")
 def test_endpoint():
