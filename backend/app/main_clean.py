@@ -43,11 +43,14 @@ def health():
         from app.tools.graph_tool import neo4j_manager
         import requests
         
-        # Check LiteLLM proxy health (only in local development)
-        is_local = os.getenv("ENVIRONMENT") == "local" or os.getenv("OPENAI_BASE_URL", "").startswith("http://localhost")
-        gateway_status = "direct_provider" if not is_local else "down"
+        # Explicit environment detection - no more guessing!
+        ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+        is_production = (ENVIRONMENT == "production")
         
-        if is_local:
+        # Check LiteLLM proxy health (only in local development)
+        gateway_status = "direct_provider" if is_production else "down"
+        
+        if not is_production:
             try:
                 response = requests.get("http://localhost:48583/health", timeout=5)
                 if response.status_code == 200:
@@ -80,8 +83,12 @@ def gateway_health():
     try:
         import requests
         
+        # Explicit environment detection - no more guessing!
+        ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+        is_production = (ENVIRONMENT == "production")
+        
         # In production, use direct provider access
-        if os.getenv("ENVIRONMENT") != "local" and not os.getenv("OPENAI_BASE_URL", "").startswith("http://localhost"):
+        if is_production:
             return {"status": "online", "gateway": "direct_provider"}
         
         # Local development - check LiteLLM proxy

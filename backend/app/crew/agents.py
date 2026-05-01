@@ -24,11 +24,27 @@ class AgentState(TypedDict):
 def invoke_llm(prompt: str) -> str:
     """Invoke LLM through LiteLLM AI Gateway with fallback handling"""
     
-    # Environment detection for local vs production
-    is_local = os.getenv("ENVIRONMENT") == "local" or os.getenv("OPENAI_BASE_URL", "").startswith("http://localhost")
+    # Explicit environment detection - no more guessing!
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+    is_production = (ENVIRONMENT == "production")
+    
+    if is_production:
+        print("🚀 Astra Engine: Running in DIRECT CLOUD mode")
+    else:
+        print("💻 Astra Engine: Running in LOCAL PROXY mode")
     
     try:
-        if is_local:
+        if is_production:
+            # Production - use Gemini directly through LiteLLM (let LiteLLM handle base_url)
+            response = litellm.completion(
+                model="gemini/gemini-1.5-flash",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=1024,
+                api_key=os.getenv("GOOGLE_API_KEY")
+                # CRITICAL: NO base_url for cloud direct access
+            )
+        else:
             # Local development - use LiteLLM proxy with OpenAI-compatible endpoint
             response = litellm.completion(
                 model="openai/astra-brain",
@@ -38,16 +54,6 @@ def invoke_llm(prompt: str) -> str:
                 base_url="http://localhost:48583/v1",
                 api_key=os.getenv("LITELLM_MASTER_KEY") or os.getenv("OPENAI_API_KEY")
             )
-        else:
-            # Production - use Gemini directly through LiteLLM (let LiteLLM handle base_url)
-            response = litellm.completion(
-                model="gemini/gemini-1.5-flash",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=1024,
-                api_key=os.getenv("GOOGLE_API_KEY")
-                # Note: Don't set base_url for Gemini - LiteLLM handles it automatically
-            )
         
         return response.choices[0].message.content
         
@@ -56,7 +62,7 @@ def invoke_llm(prompt: str) -> str:
         
         # Smart fallback based on environment
         try:
-            if is_local:
+            if not is_production:
                 # Local fallback - try direct Gemini
                 response = litellm.completion(
                     model="gemini/gemini-1.5-flash",
