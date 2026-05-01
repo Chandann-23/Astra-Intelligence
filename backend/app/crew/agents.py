@@ -9,11 +9,8 @@ import os
 from langgraph.graph import StateGraph, END
 from langchain_core.tools import tool
 
-# GLM-5.1 Configuration via OpenRouter
-litellm.drop_params = True  # Ensure clean handshakes with OpenRouter
-
-# Use GLM-5.1 for sustained reasoning and research
-PRODUCTION_MODEL = "openrouter/zhipu/glm-5.1:free"
+# GLM-5.1 Configuration via Hugging Face Gateway
+PRODUCTION_MODEL = "huggingface/zai-org/GLM-5.1"
 
 # Load environment variables
 load_dotenv()
@@ -32,18 +29,18 @@ def invoke_llm(prompt: str) -> str:
     """Invoke LLM through LiteLLM AI Gateway with fallback handling"""
     
     # HARDCODED PRODUCTION MODE - GLM-5.1 POWERED
-    print("🚀 Astra Engine: Running on GLM-5.1 via OpenRouter")
+    print("🚀 Astra Engine: Running on GLM-5.1 via Hugging Face Gateway")
     
     try:
-        # Production ONLY - use GLM-5.1 via OpenRouter with increased timeout
+        # Production ONLY - use GLM-5.1 via Hugging Face Gateway with 300s timeout
         response = litellm.completion(
             model=PRODUCTION_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=1024,
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            timeout=300  # GLM-5.1 supports long-horizon research
-            # CRITICAL: NO base_url - OpenRouter handles routing
+            api_key=os.getenv("HUGGINGFACE_API_KEY"),
+            timeout=300  # GLM-5.1 supports 8-hour research sessions
+            # CRITICAL: NO base_url - LiteLLM handles routing
         )
         
         return response.choices[0].message.content
@@ -53,16 +50,16 @@ def invoke_llm(prompt: str) -> str:
         
         # HARDCODED PRODUCTION FALLBACK - GLM-5.1 OPTIMIZED
         try:
-            # Production fallback - try GLM-5.1 direct via OpenRouter
+            # Production fallback - try GLM-5.1 direct via Hugging Face Gateway
             response = litellm.completion(
                 model=PRODUCTION_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=1024,
-                api_key=os.getenv("OPENROUTER_API_KEY"),
+                api_key=os.getenv("HUGGINGFACE_API_KEY"),
                 timeout=300
             )
-            print("Production Fallback: GLM-5.1 direct via OpenRouter")
+            print("Production Fallback: GLM-5.1 direct via Hugging Face Gateway")
             
             return response.choices[0].message.content
             

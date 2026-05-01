@@ -37,12 +37,12 @@ def health():
         return {
             "status": "online",
             "environment": "production",
-            "model": "GLM-5.1 via OpenRouter",
+            "model": "GLM-5.1 via Hugging Face Gateway",
             "services": {
                 "neo4j": "connected" if (hasattr(neo4j_manager, 'driver') and neo4j_manager.driver) else "disconnected",
-                "gateway": "openrouter_direct",
-                "openrouter": "configured" if os.getenv("OPENROUTER_API_KEY") else "missing",
-                "huggingface": "configured" if os.getenv("HUGGINGFACE_TOKEN") else "missing"
+                "gateway": "huggingface_direct",
+                "huggingface": "configured" if os.getenv("HUGGINGFACE_API_KEY") else "missing",
+                "glm51": "configured" if os.getenv("HUGGINGFACE_API_KEY") else "missing"
             }
         }
     except Exception as e:
