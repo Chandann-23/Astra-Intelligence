@@ -498,7 +498,7 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Unified RAG Source Feed (Top 50%) */}
+            {/* Section 1: RAG Source Feed (Top 50%) - SINGLE INSTANCE */}
             <div className="h-1/2 p-4 bg-zinc-950/20 flex flex-col border-t border-zinc-900/50 font-mono relative overflow-hidden">
               {/* Scanline Overlay */}
               <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] z-10 opacity-30" />
@@ -580,7 +580,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Process Logs (Bottom 50%) */}
+            {/* Section 2: Process Logs (Bottom 50%) - FILLS REMAINING SPACE */}
             <div className="h-1/2 flex flex-col min-h-0 relative border-b border-zinc-800/50 overflow-hidden">
               {/* Scanline Overlay */}
               <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] z-10 opacity-30" />
@@ -736,32 +736,34 @@ export default function Home() {
 
       {/* Main Chat Area (60% width) */}
       <div className={`flex-1 flex flex-col relative z-10 transition-all duration-500 ${isSidebarOpen ? 'w-[60%]' : 'w-full'}`}>
-        {!isSidebarOpen && (
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="absolute left-20 top-24 z-20 bg-zinc-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl text-zinc-400 hover:text-white hover:border-cyan-500/50 transition-all shadow-2xl group"
-          >
-            <ChevronRight size={20} className="group-hover:scale-110 transition-transform" />
-          </button>
-        )}
-        {isSidebarOpen && (
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="absolute left-20 top-24 z-20 bg-zinc-900/60 backdrop-blur-xl border border-white/10 p-3 rounded-2xl text-cyan-400 hover:text-white hover:border-cyan-500/50 transition-all shadow-2xl group"
-          >
-            <ChevronLeft size={20} className="group-hover:scale-110 transition-transform" />
-          </button>
-        )}
 
         {/* Chat Header */}
         <header 
-          className="p-6 border-b border-cyan-500/30 flex justify-center items-center bg-[#0a0a0a] relative z-30"
+          className="p-6 border-b border-cyan-500/30 flex justify-between items-center bg-[#0a0a0a] relative z-30"
         >
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-              Astra Engine
-            </h1>
-            <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Multi-Agent Intelligence System</p>
+          <div className="flex items-center gap-4">
+            {!isSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:border-cyan-500/50 transition-all group"
+              >
+                <ChevronRight size={18} className="group-hover:scale-110 transition-transform" />
+              </button>
+            )}
+            {isSidebarOpen && (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-cyan-400 hover:text-white hover:border-cyan-500/50 transition-all group"
+              >
+                <ChevronLeft size={18} className="group-hover:scale-110 transition-transform" />
+              </button>
+            )}
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
+                Astra Engine
+              </h1>
+              <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Multi-Agent Intelligence System</p>
+            </div>
           </div>
         </header>
 
