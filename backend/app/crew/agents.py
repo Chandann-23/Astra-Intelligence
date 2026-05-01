@@ -5,8 +5,16 @@ from dotenv import load_dotenv
 
 # LiteLLM AI Gateway Architecture
 import litellm
+import os
 from langgraph.graph import StateGraph, END
 from langchain_core.tools import tool
+
+# FORCE BETA VERSION: This is the definitive fix for the 404 error
+litellm.api_version = "v1beta"
+litellm.drop_params = True  # Cleans up any extra params that Gemini hates
+
+# Use the specific cloud-stable string
+PRODUCTION_MODEL = "gemini/gemini-1.5-flash-latest"
 
 # Load environment variables
 load_dotenv()
@@ -28,9 +36,9 @@ def invoke_llm(prompt: str) -> str:
     print("🚀 Astra Engine: Running in DIRECT CLOUD mode (HARDCODED)")
     
     try:
-        # Production ONLY - use Gemini directly through LiteLLM (let LiteLLM handle base_url)
+        # Production ONLY - use Gemini directly through LiteLLM with v1beta API
         response = litellm.completion(
-            model="gemini/gemini-1.5-flash",
+            model=PRODUCTION_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=1024,
