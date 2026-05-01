@@ -869,23 +869,7 @@ export default function Home() {
       </AnimatePresence>
         </div>
       </div>
-
-      {/* Toast Notification */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-zinc-900 border border-cyan-500/30 text-cyan-400 px-6 py-3 rounded-2xl shadow-2xl z-50 backdrop-blur-xl"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-              <span className="text-sm font-medium">{toast}</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </div>
     </main>
   );
 }
