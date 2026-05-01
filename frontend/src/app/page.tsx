@@ -627,7 +627,8 @@ export default function Home() {
         <header 
           className="p-6 border-b border-cyan-500/30 flex justify-between items-center bg-[#0a0a0a] relative z-30"
         >
-          <div className="flex items-center gap-4">
+          {/* Sidebar Toggle - Anchored Left */}
+          <div className="flex items-center">
             {!isSidebarOpen && (
               <button
                 onClick={() => setIsSidebarOpen(true)}
@@ -644,13 +645,18 @@ export default function Home() {
                 <ChevronLeft size={18} className="group-hover:scale-110 transition-transform" />
               </button>
             )}
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-                Astra Engine
-              </h1>
-              <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Multi-Agent Intelligence System</p>
-            </div>
           </div>
+
+          {/* Astra Header - Centered */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 text-center">
+            <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
+              Astra Engine
+            </h1>
+            <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Multi-Agent Intelligence System</p>
+          </div>
+
+          {/* Spacer for balance */}
+          <div className="flex items-center w-[52px]"></div>
         </header>
 
         {/* Messages Area */}
