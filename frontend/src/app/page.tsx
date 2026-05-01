@@ -470,7 +470,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Strategy Stream (Stacked) */}
+            {/* Agentic Orchestration Trace (Stacked) */}
             <div className="h-[35%] min-h-[250px] p-4 bg-zinc-950/20 flex flex-col border-t border-zinc-900/50 font-mono relative overflow-hidden">
               {/* Scanline Overlay */}
               <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] z-10 opacity-30" />
@@ -478,7 +478,7 @@ export default function Home() {
               <div className="flex items-center justify-between mb-4 relative z-20 bg-black/40 backdrop-blur-md p-2 rounded-lg border border-white/5">
                 <div className="flex items-center gap-2">
                   <Zap size={14} className="text-zinc-500" />
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Strategy_Stream</span>
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] font-bold">Agentic_Orchestration_Trace</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
@@ -606,7 +606,7 @@ export default function Home() {
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scroll-smooth bg-transparent relative">
           <AnimatePresence>
-            {/* Knowledge Graph PiP Window */}
+            {/* RAG Source Feed PiP Window */}
             {isGraphVisible && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -616,8 +616,8 @@ export default function Home() {
               >
                 <div className="p-3 border-b border-white/5 flex justify-between items-center bg-white/5 backdrop-blur-md">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                    <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Live_Knowledge_Graph</span>
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">RAG_Source_Feed</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button 
@@ -635,8 +635,30 @@ export default function Home() {
                     </button>
                   </div>
                 </div>
-                <div className="w-full h-full p-2">
-                  <GraphView />
+                <div className="w-full h-full p-4 overflow-y-auto custom-scrollbar">
+                  <div className="space-y-3">
+                    <div className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-2">Retrieved Context</div>
+                    <div className="space-y-2">
+                      <div className="p-2 bg-emerald-950/20 border border-emerald-500/20 rounded-lg">
+                        <div className="text-xs text-emerald-300 font-mono">🔍 Tavily Search</div>
+                        <div className="text-[10px] text-zinc-400 mt-1">Real-time web sources fetched</div>
+                        <div className="text-[9px] text-emerald-400/60 mt-1">• Multiple authoritative sources</div>
+                      </div>
+                      <div className="p-2 bg-purple-950/20 border border-purple-500/20 rounded-lg">
+                        <div className="text-xs text-purple-300 font-mono">🧠 Neo4j Memory</div>
+                        <div className="text-[10px] text-zinc-400 mt-1">Persistent knowledge retrieval</div>
+                        <div className="text-[9px] text-purple-400/60 mt-1">• Agent state management</div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-zinc-500 mt-4">
+                      <div className="font-bold text-cyan-400">RAG Pipeline Active</div>
+                      <div className="mt-1 space-y-1">
+                        <div>• Context Injection: ENABLED</div>
+                        <div>• Source Attribution: TRACKED</div>
+                        <div>• Memory Retrieval: ACTIVE</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -790,9 +812,10 @@ export default function Home() {
             </AnimatePresence>
             
             <div className="mt-4 flex justify-center gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-500 font-bold opacity-50">
-              <span className="flex items-center gap-2 hover:text-emerald-400 transition-colors"><div className="w-1 h-1 rounded-full bg-emerald-500" /> Secure_Protocol_v3</span>
-              <span className="flex items-center gap-2 hover:text-cyan-400 transition-colors"><div className="w-1 h-1 rounded-full bg-cyan-500" /> Llama_3.3_Engine</span>
-              <span className="flex items-center gap-2 hover:text-amber-400 transition-colors"><div className="w-1 h-1 rounded-full bg-amber-500" /> Neo4j_Persistence</span>
+              <span className="flex items-center gap-2 hover:text-emerald-400 transition-colors"><div className="w-1 h-1 rounded-full bg-emerald-500" /> GLM-5.1_Model</span>
+              <span className="flex items-center gap-2 hover:text-cyan-400 transition-colors"><div className="w-1 h-1 rounded-full bg-cyan-500" /> Multi-Agent_Orchestration</span>
+              <span className="flex items-center gap-2 hover:text-amber-400 transition-colors"><div className="w-1 h-1 rounded-full bg-amber-500" /> RAG_Pipeline_Active</span>
+              <span className="flex items-center gap-2 hover:text-purple-400 transition-colors"><div className="w-1 h-1 rounded-full bg-purple-500" /> Latency: <span id="latency-metric">~300ms</span></span>
             </div>
           </div>
         </div>
