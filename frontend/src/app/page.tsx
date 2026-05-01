@@ -647,12 +647,12 @@ export default function Home() {
             )}
           </div>
 
-          {/* Astra Header - Centered */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 text-center">
+          {/* Astra Header - Centered using flex */}
+          <div className="flex-1 flex justify-center items-center text-center">
             <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
               Astra Engine
             </h1>
-            <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Multi-Agent Intelligence System</p>
+            <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1 ml-4">Multi-Agent Intelligence System</p>
           </div>
 
           {/* Spacer for balance */}

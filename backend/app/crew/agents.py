@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from typing import TypedDict, Annotated, Generator
 from dotenv import load_dotenv
 
@@ -24,7 +25,7 @@ class AgentState(TypedDict):
     storage_result: str 
 
 def invoke_llm(prompt: str) -> str:
-    """Invoke LLM through LiteLLM AI Gateway with robust error handling"""
+    """Invoke LLM through LiteLLM AI Gateway with robust error handling and retries"""
     
     api_key = os.getenv("SAMBANOVA_API_KEY")
     
@@ -35,32 +36,51 @@ def invoke_llm(prompt: str) -> str:
 
     print(f"🚀 Astra Engine: Running on GLM-5.1 ({PRODUCTION_MODEL})")
     
-    try:
-        # LiteLLM call optimized for GLM-5.1's long-horizon capabilities
-        response = litellm.completion(
-            model=PRODUCTION_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=4096, # Increased to prevent mid-sentence cutoffs
-            api_key=api_key,
-            timeout=300 # Supports GLM-5.1's 8-hour research sessions
-        )
-        return response.choices[0].message.content
-        
-    except Exception as e:
-        error_msg = str(e)
-        print(f"LiteLLM Error: {error_msg}")
-        
-        # Check specifically for authentication issues
-        if "401" in error_msg or "auth" in error_msg.lower():
-            return "Error: Authentication failed. Verify HUGGINGFACE_API_KEY."
+    # Retry logic for rate limit errors
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            # LiteLLM call optimized for GLM-5.1's long-horizon capabilities
+            response = litellm.completion(
+                model=PRODUCTION_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=4096, # Increased to prevent mid-sentence cutoffs
+                api_key=api_key,
+                timeout=300 # Supports GLM-5.1's 8-hour research sessions
+            )
+            return response.choices[0].message.content
             
-        return f"Error: {error_msg}"
+        except Exception as e:
+            error_msg = str(e)
+            print(f"LiteLLM Error (attempt {attempt + 1}): {error_msg}")
+            
+            # Check specifically for rate limit errors
+            if "rate limit" in error_msg.lower() or "ratelimit" in error_msg.lower():
+                if attempt < max_retries - 1:
+                    print(f"⏳ Rate limit hit. Waiting 5 seconds before retry...")
+                    time.sleep(5)
+                    continue
+                else:
+                    return "Error: Rate limit exceeded. Please try again in a few minutes."
+            
+            # Check specifically for authentication issues
+            if "401" in error_msg or "auth" in error_msg.lower():
+                return "Error: Authentication failed. Verify HUGGINGFACE_API_KEY."
+                
+            # For other errors, don't retry
+            if attempt == 0:  # Only return non-rate-limit errors immediately
+                return f"Error: {error_msg}"
+    
+    return "Error: Failed after multiple attempts."
 
 # --- Node Definitions ---
 
 def researcher_node(state: AgentState) -> AgentState:
     """Analyze the query and generate a research report"""
+    # Rate limit protection - add delay
+    time.sleep(2)
+    
     # Ensure revision_count is initialized and increment it
     if state.get("revision_count") is None:
         state["revision_count"] = 0
@@ -90,6 +110,9 @@ def researcher_node(state: AgentState) -> AgentState:
 
 def critic_node(state: AgentState) -> AgentState:
     """Review the report for depth and accuracy"""
+    # Rate limit protection - add delay
+    time.sleep(2)
+    
     # Don't run critique if research failed
     if "Error:" in state.get("research_output", ""):
         return state
