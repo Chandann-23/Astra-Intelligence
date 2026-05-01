@@ -616,8 +616,10 @@ export default function Home() {
                 <div ref={terminalEndRef} />
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            
       {/* Main Chat Area (60% width) */}
       <div className={`flex-1 flex flex-col relative z-10 transition-all duration-500 ${isSidebarOpen ? 'w-[60%]' : 'w-full'}`}>
 
@@ -867,9 +869,6 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
-        </div>
-      </div>
-      </div>
     </main>
   );
 }
