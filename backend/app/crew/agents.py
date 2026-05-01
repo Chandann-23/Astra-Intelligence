@@ -58,8 +58,8 @@ def invoke_llm(prompt: str) -> str:
             # Check specifically for rate limit errors
             if "rate limit" in error_msg.lower() or "ratelimit" in error_msg.lower():
                 if attempt < max_retries - 1:
-                    print(f"⏳ Rate limit hit. Waiting 5 seconds before retry...")
-                    time.sleep(5)
+                    print(f"⏳ Rate limit hit. Waiting 10 seconds before retry...")
+                    time.sleep(10)
                     continue
                 else:
                     return "Error: Rate limit exceeded. Please try again in a few minutes."
@@ -79,7 +79,7 @@ def invoke_llm(prompt: str) -> str:
 def researcher_node(state: AgentState) -> AgentState:
     """Analyze the query and generate a research report"""
     # Rate limit protection - add delay
-    time.sleep(2)
+    time.sleep(3)
     
     # Ensure revision_count is initialized and increment it
     if state.get("revision_count") is None:
@@ -111,7 +111,7 @@ def researcher_node(state: AgentState) -> AgentState:
 def critic_node(state: AgentState) -> AgentState:
     """Review the report for depth and accuracy"""
     # Rate limit protection - add delay
-    time.sleep(2)
+    time.sleep(3)
     
     # Don't run critique if research failed
     if "Error:" in state.get("research_output", ""):
