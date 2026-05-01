@@ -43,14 +43,17 @@ def health():
         from app.tools.graph_tool import neo4j_manager
         import requests
         
-        # Check LiteLLM proxy health
-        gateway_status = "down"
-        try:
-            response = requests.get("http://localhost:48583/health", timeout=5)
-            if response.status_code == 200:
-                gateway_status = "online"
-        except:
-            pass
+        # Check LiteLLM proxy health (only in local development)
+        gateway_status = "direct"  # Production uses direct provider access
+        if os.getenv("ENVIRONMENT") == "local" or os.getenv("OPENAI_BASE_URL", "").startswith("http://localhost"):
+            try:
+                response = requests.get("http://localhost:48583/health", timeout=5)
+                if response.status_code == 200:
+                    gateway_status = "online"
+                else:
+                    gateway_status = "down"
+            except:
+                gateway_status = "down"
         
         # Check API keys
         google_key = os.environ.get("GOOGLE_API_KEY")
@@ -71,12 +74,18 @@ def health():
 
 @app.get("/gateway/health")
 def gateway_health():
-    """Specific health check for LiteLLM proxy"""
+    """Specific health check for LiteLLM proxy or direct provider"""
     try:
         import requests
+        
+        # In production, use direct provider access
+        if os.getenv("ENVIRONMENT") != "local" and not os.getenv("OPENAI_BASE_URL", "").startswith("http://localhost"):
+            return {"status": "online", "gateway": "direct_provider"}
+        
+        # Local development - check LiteLLM proxy
         response = requests.get("http://localhost:48583/health", timeout=5)
         if response.status_code == 200:
-            return {"status": "online", "gateway": "healthy"}
+            return {"status": "online", "gateway": "proxy_healthy"}
         else:
             return {"status": "error", "message": "Gateway returned non-200 status"}
     except Exception as e:

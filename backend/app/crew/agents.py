@@ -23,14 +23,27 @@ class AgentState(TypedDict):
 # Using astra-brain unified model with automatic fallback handling
 def invoke_llm(prompt: str) -> str:
     """Invoke LLM through LiteLLM AI Gateway with fallback handling"""
+    
+    # Dynamic base_url for local vs production
+    base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    if os.getenv("ENVIRONMENT") == "local" or base_url.startswith("http://localhost"):
+        # Local development - use LiteLLM proxy
+        model_name = "openai/astra-brain"
+        api_key = os.getenv("LITELLM_MASTER_KEY") or os.getenv("OPENAI_API_KEY")
+    else:
+        # Production - use direct provider
+        model_name = "gemini/gemini-1.5-flash"
+        api_key = os.getenv("GOOGLE_API_KEY")
+        base_url = "https://generativelanguage.googleapis.com/v1"
+    
     try:
         response = litellm.completion(
-            model="openai/astra-brain",
+            model=model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
             max_tokens=1024,
-            base_url="http://localhost:48583/v1",
-            api_key=os.getenv("LITELLM_MASTER_KEY")
+            base_url=base_url,
+            api_key=api_key
         )
         return response.choices[0].message.content
     except Exception as e:
