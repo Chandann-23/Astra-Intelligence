@@ -44,6 +44,7 @@ export default function Home() {
   ]);
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
+  const [isWarmingUp, setIsWarmingUp] = useState(false);
   const [logs, setLogs] = useState<string[]>([
     "[SYSTEM]: Astra Engine Initialized...",
     "[SYSTEM]: Ready for command input."
@@ -84,6 +85,7 @@ export default function Home() {
     const currentTopic = topic;
     setTopic("");
     setLoading(true);
+    setIsWarmingUp(true); // Trigger warm-up state immediately
     
     let currentRetrievedNodes: string[] = [];
     let memoryAccessed = false;
@@ -121,6 +123,8 @@ export default function Home() {
             
             // Handle LangGraph status events
             if (data.status) {
+              // Turn off warm-up state when first data chunk arrives
+              setIsWarmingUp(false);
               setLogs(prev => [...prev, `[${data.node?.toUpperCase() || 'SYSTEM'}]: ${data.message}`]);
               
               // Update active agent based on node
@@ -760,6 +764,31 @@ export default function Home() {
                 )}
               </button>
             </div>
+            
+            {/* Professional Loading State - Warm-up Phase */}
+            <AnimatePresence>
+              {isWarmingUp && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-6 p-4 bg-cyan-950/10 border border-cyan-500/20 rounded-2xl backdrop-blur-md"
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
+                    <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse delay-75" />
+                    <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse delay-150" />
+                    <span className="text-cyan-300 text-sm font-medium ml-2">
+                      Astra is warming up... Initializing research engine
+                    </span>
+                  </div>
+                  <div className="mt-2 text-center text-xs text-cyan-400/60">
+                    Preparing GLM-5.1 for deep analysis
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
             <div className="mt-4 flex justify-center gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-500 font-bold opacity-50">
               <span className="flex items-center gap-2 hover:text-emerald-400 transition-colors"><div className="w-1 h-1 rounded-full bg-emerald-500" /> Secure_Protocol_v3</span>
               <span className="flex items-center gap-2 hover:text-cyan-400 transition-colors"><div className="w-1 h-1 rounded-full bg-cyan-500" /> Llama_3.3_Engine</span>
