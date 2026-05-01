@@ -747,7 +747,7 @@ export default function Home() {
                           fontFamily: "'Inter', sans-serif"
                         }}
                       >
-                        {msg.content}
+                        {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2)}
                       </div>
                     )}
                   </div>
@@ -755,6 +755,45 @@ export default function Home() {
               </motion.div>
             ))}
           </AnimatePresence>
+          
+          {/* Gemini-style 'Astra Pulse' Loader */}
+          <AnimatePresence>
+            {isWarmingUp && loading && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="flex justify-start"
+              >
+                <div className="max-w-[85%] flex gap-4">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 border bg-cyan-950/30 border-cyan-500/30 text-cyan-400">
+                    <Bot size={16} />
+                  </div>
+                  
+                  <div className="space-y-2 text-left">
+                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+                      Astra_Engine
+                      <span className="flex items-center gap-1 text-cyan-400 bg-cyan-400/10 px-1.5 py-0.5 rounded border border-cyan-400/20 lowercase animate-pulse">
+                        <Activity size={10} className="text-cyan-300" /> thinking
+                      </span>
+                    </div>
+                    
+                    <div className="p-4 rounded-2xl text-sm leading-relaxed border backdrop-blur-md bg-cyan-950/20 border-cyan-500/20 text-cyan-50 rounded-tl-none shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+                      <div className="flex items-center gap-2">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        </div>
+                        <span className="text-cyan-300 text-sm">Initializing research sequence...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
           <div ref={chatEndRef} />
         </div>
 

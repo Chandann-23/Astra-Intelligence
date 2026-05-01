@@ -60,9 +60,24 @@ async def stream_analysis(request: AnalysisRequest):
                         last_seen_state.update(node_state)
                         
                         status_map = {
-                            "researcher": {"status": "researching", "message": "Lead Researcher generating report...", "node": "researcher"},
-                            "critic": {"status": "critiquing", "message": "Senior Critic reviewing findings...", "node": "critic"},
-                            "storage": {"status": "storing", "message": "Archiving to Neo4j Knowledge Graph...", "node": "storage"}
+                            "researcher": {
+                                "status": "researching", 
+                                "message": "Lead Researcher generating report...", 
+                                "node": "researcher",
+                                "trace": "Researcher analyzing query and generating comprehensive research report using GLM-5.1"
+                            },
+                            "critic": {
+                                "status": "critiquing", 
+                                "message": "Senior Critic reviewing findings...", 
+                                "node": "critic",
+                                "trace": "Critic evaluating research quality and providing feedback for improvement"
+                            },
+                            "storage": {
+                                "status": "storing", 
+                                "message": "Archiving to Neo4j Knowledge Graph...", 
+                                "node": "storage",
+                                "trace": "Storage agent persisting research results to Neo4j database for future retrieval"
+                            }
                         }
                         
                         status_update = status_map.get(node_name, {"status": "processing", "message": f"Executing {node_name}...", "node": node_name})
