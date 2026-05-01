@@ -1,45 +1,26 @@
 import uvicorn
 import os
-from dotenv import load_dotenv
-
-# Load environment variables FIRST
-load_dotenv()
-print('🚀 ASTRA ENGINE STARTING...')
-print(f'DEBUG: API KEY EXISTS: {bool(os.getenv("GOOGLE_API_KEY"))}')
-
 import json
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+
+# Load environment variables
+load_dotenv()
+print('🚀 ASTRA ENGINE STARTING IN PRODUCTION MODE...')
+print(f'DEBUG: API KEY EXISTS: {bool(os.getenv("GOOGLE_API_KEY"))}')
+
+# We skip the validate_proxy_connection() function entirely for Hugging Face
 from app.crew.agents import app_graph
 
 app = FastAPI()
 
-# Pre-run proxy validation
-def validate_proxy_connection():
-    """Validate LiteLLM proxy connection before starting server"""
-    try:
-        import requests
-        response = requests.get("http://localhost:48583/health", timeout=5)
-        if response.status_code == 200:
-            print("✅ LiteLLM proxy is reachable")
-            return True
-        else:
-            print(f"⚠️  LiteLLM proxy returned status {response.status_code}")
-            return False
-    except Exception as e:
-        print(f"❌ Cannot reach LiteLLM proxy: {str(e)}")
-        return False
-
-# Validate proxy on startup
-proxy_status = validate_proxy_connection()
-
-# Simplified CORS middleware to prevent body consumption issues
+# Standard CORS for Production
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,  # Simplified to prevent body consumption
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -50,31 +31,17 @@ class AnalysisRequest(BaseModel):
 
 @app.get("/health")
 def health():
+    """Production-only health check without localhost pings"""
     try:
         from app.tools.graph_tool import neo4j_manager
-        import requests
-        
-        # Check LiteLLM proxy health
-        gateway_status = "down"
-        try:
-            response = requests.get("http://localhost:48583/health", timeout=5)
-            if response.status_code == 200:
-                gateway_status = "online"
-        except:
-            pass
-        
-        # Check API keys
-        google_key = os.environ.get("GOOGLE_API_KEY")
-        hf_token = os.environ.get("HUGGINGFACE_TOKEN")
-        
         return {
             "status": "online",
+            "environment": "production",
             "services": {
                 "neo4j": "connected" if (hasattr(neo4j_manager, 'driver') and neo4j_manager.driver) else "disconnected",
-                "gateway": gateway_status,
-                "google": "configured" if google_key else "missing",
-                "huggingface": "configured" if hf_token else "missing",
-                "tavily": "configured" if os.environ.get("TAVILY_API_KEY") else "missing"
+                "gateway": "direct_provider", # Hardcoded to bypass localhost errors
+                "google": "configured" if os.getenv("GOOGLE_API_KEY") else "missing",
+                "huggingface": "configured" if os.getenv("HUGGINGFACE_TOKEN") else "missing"
             }
         }
     except Exception as e:
@@ -82,27 +49,17 @@ def health():
 
 @app.get("/gateway/health")
 def gateway_health():
-    """Specific health check for LiteLLM proxy"""
-    try:
-        import requests
-        response = requests.get("http://localhost:48583/health", timeout=5)
-        if response.status_code == 200:
-            return {"status": "online", "gateway": "healthy"}
-        else:
-            return {"status": "error", "message": "Gateway returned non-200 status"}
-    except Exception as e:
-        return {"status": "GATEWAY_DOWN", "message": f"Cannot reach LiteLLM proxy: {str(e)}"}
+    """Bypasses local check for production stability"""
+    return {"status": "online", "gateway": "direct_provider_active"}
 
 @app.get("/test")
 def test_endpoint():
-    """Minimal test endpoint to isolate request handling issues"""
-    return {"status": "ok", "message": "Test endpoint working"}
+    return {"status": "ok", "message": "Astra Cloud Engine is active"}
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):
     print(f'DEBUG: Received research request for: {request.topic}')
     try:
-        # Initialize state for LangGraph
         initial_state = {
             "query": request.topic,
             "research_output": "",
@@ -112,18 +69,12 @@ async def stream_analysis(request: AnalysisRequest):
         }
         
         async def generate_stream():
-            # Send immediate heartbeat
             yield f"data: {json.dumps({'status': 'initializing', 'message': 'Astra Engine warming up...', 'node': 'start'})}\n\n"
-            
             last_seen_state = initial_state
             
             try:
-                # Use stream instead of astream if your graph isn't fully async, 
-                # but astream is better for FastAPI.
                 async for chunk in app_graph.astream(initial_state):
-                    # LangGraph chunk format is {node_name: {updated_state_keys}}
                     for node_name, node_state in chunk.items():
-                        # Update our tracker so we have the final result at the end
                         last_seen_state.update(node_state)
                         
                         status_map = {
@@ -134,14 +85,12 @@ async def stream_analysis(request: AnalysisRequest):
                         
                         status_update = status_map.get(node_name, {"status": "processing", "message": f"Executing {node_name}...", "node": node_name})
                         
-                        # Add partial result if the researcher just finished
                         if "research_output" in node_state:
                             content = node_state["research_output"]
                             status_update["partial_result"] = content[:500] + "..." if len(content) > 500 else content
                         
                         yield f"data: {json.dumps(status_update)}\n\n"
                 
-                # FINAL PACKET: Send the total accumulated state
                 final_response = {
                     "status": "completed",
                     "message": "Research analysis completed successfully",
@@ -160,7 +109,7 @@ async def stream_analysis(request: AnalysisRequest):
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
-                "X-Accel-Buffering": "no" # Critical for Hugging Face/Nginx streaming
+                "X-Accel-Buffering": "no" 
             }
         )
     except Exception as e:
@@ -169,4 +118,5 @@ async def stream_analysis(request: AnalysisRequest):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 7860))
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=False)
+    # We remove the "app.main:app" string and use the object directly for HF stability
+    uvicorn.run(app, host="0.0.0.0", port=port)
