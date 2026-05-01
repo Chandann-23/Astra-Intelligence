@@ -52,15 +52,35 @@ async def stream_analysis(request: AnalysisRequest):
         initial_state = {"query": request.topic, "research_output": "", "critique": "", "revision_count": 0, "storage_result": ""}
         
         async def generate_stream():
-            yield f"data: {json.dumps({'status': 'initializing', 'message': 'Astra Warming Up...'})}\n\n"
+            yield f"data: {json.dumps({'status': 'initializing', 'message': 'Astra Warming Up...', 'node': 'start'})}\n\n"
             last_seen_state = initial_state
             try:
                 async for chunk in app_graph.astream(initial_state):
                     for node_name, node_state in chunk.items():
                         last_seen_state.update(node_state)
-                        yield f"data: {json.dumps({'status': 'processing', 'node': node_name})}\n\n"
+                        
+                        status_map = {
+                            "researcher": {"status": "researching", "message": "Lead Researcher generating report...", "node": "researcher"},
+                            "critic": {"status": "critiquing", "message": "Senior Critic reviewing findings...", "node": "critic"},
+                            "storage": {"status": "storing", "message": "Archiving to Neo4j Knowledge Graph...", "node": "storage"}
+                        }
+                        
+                        status_update = status_map.get(node_name, {"status": "processing", "message": f"Executing {node_name}...", "node": node_name})
+                        
+                        if "research_output" in node_state:
+                            content = node_state["research_output"]
+                            status_update["partial_result"] = content[:500] + "..." if len(content) > 500 else content
+                        
+                        yield f"data: {json.dumps(status_update)}\n\n"
                 
-                yield f"data: {json.dumps({'status': 'completed', 'result': last_seen_state.get('research_output', '')})}\n\n"
+                final_response = {
+                    "status": "completed",
+                    "message": "Research analysis completed successfully",
+                    "result": last_seen_state.get("research_output", ""),
+                    "storage_result": last_seen_state.get("storage_result", ""),
+                    "node": "end"
+                }
+                yield f"data: {json.dumps(final_response)}\n\n"
             except Exception as graph_error:
                 yield f"data: {json.dumps({'status': 'error', 'message': str(graph_error)})}\n\n"
         
