@@ -482,12 +482,12 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Sidebar - Terminal Logs (40% width) */}
+      {/* Sidebar - Terminal Logs (25% width) */}
       <AnimatePresence initial={false}>
         {isSidebarOpen && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "40%", opacity: 1 }}
+            animate={{ width: "25%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="border-l border-zinc-800/50 bg-zinc-950/40 backdrop-blur-xl flex flex-col overflow-hidden z-10"
@@ -620,8 +620,8 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Main Chat Area (60% width) */}
-      <div className={`flex-1 flex flex-col relative z-10 transition-all duration-500 ${isSidebarOpen ? 'w-[60%]' : 'w-full'}`}>
+      {/* Main Chat Area (75% width) */}
+      <div className={`flex-1 flex flex-col relative z-10 transition-all duration-500 ${isSidebarOpen ? 'w-[75%]' : 'w-full'}`}>
 
         {/* Chat Header */}
         <header 
