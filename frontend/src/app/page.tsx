@@ -92,6 +92,17 @@ export default function Home() {
     }
   }, [messages, loading]);
 
+  // Enhanced auto-scroll during loading state
+  useEffect(() => {
+    if (loading) {
+      const scrollInterval = setInterval(() => {
+        scrollToChatBottom();
+      }, 500); // Scroll every 500ms during loading
+
+      return () => clearInterval(scrollInterval);
+    }
+  }, [loading]);
+
   const handleAnalyze = async () => {
     if (!topic) return;
     
@@ -704,6 +715,7 @@ export default function Home() {
                           status="completed"
                           currentNode="end"
                           message="Analysis complete"
+                          onScroll={scrollToChatBottom}
                         />
                         
                         {msg.retrievedNodes && (

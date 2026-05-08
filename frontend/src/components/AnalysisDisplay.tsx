@@ -11,6 +11,7 @@ interface AnalysisDisplayProps {
   message?: string;
   partialResult?: string;
   storageResult?: string;
+  onScroll?: () => void;
 }
 
 const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ 
@@ -19,7 +20,8 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
   currentNode, 
   message, 
   partialResult, 
-  storageResult 
+  storageResult,
+  onScroll 
 }) => {
   const cleanText = (text: string) => {
     return text
@@ -43,6 +45,12 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
     const intervalId = setInterval(() => {
       setDisplayedText((prev) => prev + textToDisplay.charAt(i));
       i++;
+      
+      // Auto-scroll during typing
+      if (onScroll && i % 10 === 0) { // Scroll every 10 characters to avoid excessive calls
+        onScroll();
+      }
+      
       if (i >= textToDisplay.length) {
         clearInterval(intervalId);
         setIsTyping(false);
@@ -50,7 +58,7 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
     }, 10); // Slightly faster for markdown
 
     return () => clearInterval(intervalId);
-  }, [textToDisplay]);
+  }, [textToDisplay, onScroll]);
 
   return (
     <div className="w-full max-w-4xl mx-auto bg-black/40 backdrop-blur-xl border border-emerald-500/20 rounded-2xl overflow-hidden shadow-2xl relative transition-all duration-500">
