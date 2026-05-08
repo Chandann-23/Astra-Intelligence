@@ -625,7 +625,7 @@ export default function Home() {
 
         {/* Chat Header */}
         <header 
-          className="p-6 border-b border-cyan-500/30 flex justify-between items-center bg-[#041e2e] relative z-30"
+          className="p-6 border-b border-cyan-500/20 flex justify-between items-center bg-cyan-950/20 backdrop-blur-xl rounded-lg relative z-30"
         >
           {/* Sidebar Toggle - Anchored Left */}
           <div className="flex items-center">
