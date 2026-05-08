@@ -625,7 +625,7 @@ export default function Home() {
 
         {/* Chat Header */}
         <header 
-          className="p-6 border-b border-cyan-500/30 flex justify-between items-center bg-[#0a0a0a] relative z-30"
+          className="p-6 border-b border-cyan-500/30 flex justify-between items-center bg-[#041e2e] relative z-30"
         >
           {/* Sidebar Toggle - Anchored Left */}
           <div className="flex items-center">
@@ -827,30 +827,7 @@ export default function Home() {
               </button>
             </div>
             
-            {/* Professional Loading State - Warm-up Phase */}
-            <AnimatePresence>
-              {isWarmingUp && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mt-6 p-4 bg-cyan-950/10 border border-cyan-500/20 rounded-2xl backdrop-blur-md"
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
-                    <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse delay-75" />
-                    <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse delay-150" />
-                    <span className="text-cyan-300 text-sm font-medium ml-2">
-                      Astra is warming up... Initializing research engine
-                    </span>
-                  </div>
-                  <div className="mt-2 text-center text-xs text-cyan-400/60">
-                    Preparing GLM-5.1 for deep analysis
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
+                        
             <div className="mt-4 flex justify-center gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-500 font-bold opacity-50">
               <span className="flex items-center gap-2 hover:text-emerald-400 transition-colors"><div className="w-1 h-1 rounded-full bg-emerald-500" /> GLM-5.1_Model</span>
               <span className="flex items-center gap-2 hover:text-cyan-400 transition-colors"><div className="w-1 h-1 rounded-full bg-cyan-500" /> Multi-Agent_Orchestration</span>
