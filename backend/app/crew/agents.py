@@ -129,34 +129,51 @@ def critic_node(state: AgentState) -> AgentState:
     state["critique"] = response
     return state
 
-def storage_node(state: AgentState) -> AgentState:
-    """Save the final research to Neo4j"""
-    # Skip storage if there was an error
-    if "Error:" in state.get("research_output", ""):
-        state["storage_result"] = "Skipped: Research contained errors."
+from langchain_community.graphs import Neo4jGraph
+
+# Grab the active instance connection wrapper
+graph = Neo4jGraph(
+    url=os.getenv("NEO4J_URI"),
+    username=os.getenv("NEO4J_USERNAME", "neo4j"),
+    password=os.getenv("NEO4J_PASSWORD")
+)
+
+def save_research_to_graph(state: AgentState) -> AgentState:
+    """LangGraph node to force-commit research entities to Neo4j Cloud Instance"""
+    research_content = state.get("research_output", "")
+    query_topic = state.get("query", "General Research")
+    
+    if not research_content or "Error:" in research_content:
+        print("[SYSTEM_WARN]: No valid content available to write to Neo4j.")
+        state["storage_result"] = "Skipped: Research contained errors or was empty."
         return state
 
-    try:
-        from app.tools.graph_tool import Neo4jManager
-        neo4j_manager = Neo4jManager()
-        
-        cypher_query = """
-        CREATE (r:Research {
-            query: $query,
-            content: $content,
-            created: datetime()
-        })
-        RETURN r
-        """
-        params = {
-            "query": state.get('query', ''),
-            "content": state.get('research_output', '')
-        }
-        neo4j_manager.execute_query(cypher_query, params)
-        state["storage_result"] = "Success: Saved to Neo4j"
-    except Exception as e:
-        state["storage_result"] = f"Storage error: {str(e)}"
+    # Constructing an explicit Cypher execution statement to guarantee node creation
+    cypher_write_query = """
+    MERGE (q:Concept {id: $topic})
+    SET q.updatedAt = timestamp()
     
+    // Split content briefly into summary elements to simulate structured extraction nodes
+    MERGE (r:ResearchSummary {id: $topic + "_Summary"})
+    SET r.raw_data = substring($content, 0, 2000),
+        r.processedAt = timestamp()
+        
+    MERGE (q)-[:HAS_ANALYSIS]->(r)
+    RETURN count(q) as created
+    """
+    
+    try:
+        # Execute transactional query directly on Aura instance
+        result = graph.query(cypher_write_query, params={
+            "topic": query_topic,
+            "content": research_content
+        })
+        print(f"[SUCCESS]: Forced write to Neo4j Aura. Core transaction committed: {result}")
+        state["storage_result"] = "Success: Forced write to Neo4j Aura"
+    except Exception as db_err:
+        print(f"[CRITICAL_ERROR]: Failed writing graph document to Neo4j Instance: {str(db_err)}")
+        state["storage_result"] = f"Storage error: {str(db_err)}"
+        
     return state
 
 # --- Workflow Logic ---
@@ -180,7 +197,7 @@ def should_continue(state: AgentState) -> str:
 workflow = StateGraph(AgentState)
 workflow.add_node("researcher", researcher_node)
 workflow.add_node("critic", critic_node)
-workflow.add_node("storage", storage_node)
+workflow.add_node("storage", save_research_to_graph)
 
 workflow.set_entry_point("researcher")
 workflow.add_edge("researcher", "critic")
