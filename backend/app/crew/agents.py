@@ -135,7 +135,9 @@ from langchain_community.graphs import Neo4jGraph
 graph = Neo4jGraph(
     url=os.getenv("NEO4J_URI"),
     username=os.getenv("NEO4J_USERNAME", "neo4j"),
-    password=os.getenv("NEO4J_PASSWORD")
+    password=os.getenv("NEO4J_PASSWORD"),
+    database="neo4j", # If aura rejects, we can also use database="" or let the driver auto-select
+    refresh_schema=False # Temporarily disable auto-refresh on boot to prevent the database look-up crash
 )
 
 def save_research_to_graph(state: AgentState) -> AgentState:
