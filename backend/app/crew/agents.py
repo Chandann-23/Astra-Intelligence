@@ -165,7 +165,7 @@ def save_research_to_graph(state: AgentState) -> AgentState:
     """
     
     try:
-        # Execute transactional query directly on Aura instance
+        # Force execution against the implicit default instance database rather than a named target
         result = graph.query(cypher_write_query, params={
             "topic": query_topic,
             "content": research_content
@@ -173,8 +173,19 @@ def save_research_to_graph(state: AgentState) -> AgentState:
         print(f"[SUCCESS]: Forced write to Neo4j Aura. Core transaction committed: {result}")
         state["storage_result"] = "Success: Forced write to Neo4j Aura"
     except Exception as db_err:
-        print(f"[CRITICAL_ERROR]: Failed writing graph document to Neo4j Instance: {str(db_err)}")
-        state["storage_result"] = f"Storage error: {str(db_err)}"
+        # Fallback directly to the bare driver session if the community wrapper forces 'neo4j'
+        try:
+            print("[SYSTEM]: Wrapper failed. Attempting native driver session fallback...")
+            with graph._driver.session() as session:
+                result = session.run(cypher_write_query, {
+                    "topic": query_topic,
+                    "content": research_content
+                })
+                print(f"[SUCCESS]: Native driver session commit complete.")
+                state["storage_result"] = "Success: Native driver session commit complete."
+        except Exception as native_err:
+            print(f"[CRITICAL_ERROR]: Failed writing graph document to Neo4j Instance: {str(native_err)}")
+            state["storage_result"] = f"Storage error: {str(native_err)}"
         
     return state
 
