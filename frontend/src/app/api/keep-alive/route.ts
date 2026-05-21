@@ -17,10 +17,11 @@ export async function GET() {
       message: 'Astra engine pinged successfully',
       backendStatus: response.status 
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as Error;
     return NextResponse.json({ 
       status: 'error', 
-      message: error.message || 'Failed to awake space' 
+      message: err.message || 'Failed to awake space' 
     }, { status: 500 });
   }
 }

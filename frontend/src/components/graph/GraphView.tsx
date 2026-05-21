@@ -38,7 +38,9 @@ const GraphView: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
+    const fetchTimeout = setTimeout(() => {
+      fetchData();
+    }, 0);
     const interval = setInterval(fetchData, 10000);
     
     handleResize();
@@ -55,6 +57,7 @@ const GraphView: React.FC = () => {
       clearInterval(interval);
       window.removeEventListener('resize', handleResize);
       clearTimeout(timeout);
+      clearTimeout(fetchTimeout);
     };
   }, [handleResize]);
 
@@ -79,7 +82,7 @@ const GraphView: React.FC = () => {
     }
   };
 
-  const handleNodeClick = useCallback((node: any) => {
+  const handleNodeClick = useCallback((node: { x?: number, y?: number, name?: string, id?: string }) => {
     if (fgRef.current) {
       // Center and zoom into the clicked node
       fgRef.current.centerAt(node.x, node.y, 1000);
@@ -151,8 +154,10 @@ const GraphView: React.FC = () => {
         linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
         linkCurvature={0.25}
-        onNodeClick={handleNodeClick}
-        nodeCanvasObject={(node: any, ctx, globalScale) => {
+        onNodeClick={handleNodeClick as unknown as (node: { x?: number, y?: number, name?: string, id?: string }) => void}
+        nodeCanvasObject={(nodeObj, ctx, globalScale) => {
+          const node = nodeObj as { x?: number, y?: number, name?: string, id?: string };
+          if (!node.x || !node.y || !node.name) return;
           const label = node.name;
           const fontSize = 12 / globalScale;
           ctx.font = `${fontSize}px JetBrains Mono, monospace`;

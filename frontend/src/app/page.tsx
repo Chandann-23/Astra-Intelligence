@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Info,
   X,
+  Settings,
   ShieldCheck,
   Network,
   Eye,

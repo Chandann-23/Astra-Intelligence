@@ -39,8 +39,10 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
   const textToDisplay = partialResult || cleanedResult;
 
   useEffect(() => {
-    setDisplayedText("");
-    setIsTyping(true);
+    const timeoutId = setTimeout(() => {
+      setDisplayedText("");
+      setIsTyping(true);
+    }, 0);
     let i = 0;
     const intervalId = setInterval(() => {
       setDisplayedText((prev) => prev + textToDisplay.charAt(i));
@@ -57,7 +59,10 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
       }
     }, 10); // Slightly faster for markdown
 
-    return () => clearInterval(intervalId);
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
   }, [textToDisplay, onScroll]);
 
   return (
