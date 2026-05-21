@@ -22,10 +22,10 @@ import {
   MessageSquare,
   Info,
   X,
-  Settings,
   ShieldCheck,
   Network,
-  Eye
+  Eye,
+  Menu
 } from 'lucide-react';
 
 const GraphView = dynamic(() => import('@/components/graph/GraphView'), { ssr: false });
@@ -49,6 +49,7 @@ export default function Home() {
   const [isWarmingUp, setIsWarmingUp] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isGraphVisible, setIsGraphVisible] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState<'logs' | 'strategy' | 'graph' | null>(null);
   const [openContextId, setOpenContextId] = useState<string | null>(null);
@@ -440,8 +441,21 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+      {/* Mobile Navigation Backdrop */}
+      <AnimatePresence>
+        {isMobileNavOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileNavOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Left Navigation Sidebar - Gemini Style */}
-      <div className="w-16 bg-zinc-900/60 backdrop-blur-xl border-r border-zinc-800/50 flex flex-col items-center py-4 space-y-4 z-10">
+      <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 md:relative md:translate-x-0 w-16 bg-zinc-900/60 backdrop-blur-xl border-r border-zinc-800/50 flex flex-col items-center py-4 space-y-4 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* New Chat Button */}
         <button 
           onClick={() => {
@@ -501,7 +515,7 @@ export default function Home() {
             animate={{ width: "25%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="border-l border-zinc-800/50 bg-zinc-950/40 backdrop-blur-xl flex flex-col overflow-hidden z-10"
+            className="hidden lg:flex border-l border-zinc-800/50 bg-zinc-950/40 backdrop-blur-xl flex-col overflow-hidden z-10"
           >
             <div className="p-4 border-b border-zinc-800/50 flex justify-center items-center bg-black/20">
               <span className="text-cyan-400 font-bold tracking-tighter text-sm flex items-center gap-2">
@@ -632,30 +646,38 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Main Chat Area (75% width) */}
-      <div className={`flex-1 flex flex-col relative z-10 transition-all duration-500 ${isSidebarOpen ? 'w-[75%]' : 'w-full'}`}>
+      <div className={`flex-1 flex flex-col relative z-10 transition-all duration-500 w-full ${isSidebarOpen ? 'lg:w-[75%]' : ''}`}>
 
         {/* Chat Header */}
         <header 
-          className="p-6 border-b border-cyan-500/20 flex justify-between items-center bg-cyan-950/20 backdrop-blur-xl rounded-lg relative z-30"
+          className="p-4 md:p-6 border-b border-cyan-500/20 flex justify-between items-center bg-cyan-950/20 backdrop-blur-xl rounded-lg relative z-30"
         >
           {/* Sidebar Toggle - Anchored Left */}
-          <div className="flex items-center">
-            {!isSidebarOpen && (
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:border-cyan-500/50 transition-all group"
-              >
-                <ChevronRight size={18} className="group-hover:scale-110 transition-transform" />
-              </button>
-            )}
-            {isSidebarOpen && (
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-cyan-400 hover:text-white hover:border-cyan-500/50 transition-all group"
-              >
-                <ChevronLeft size={18} className="group-hover:scale-110 transition-transform" />
-              </button>
-            )}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsMobileNavOpen(true)}
+              className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:border-cyan-500/50 transition-all md:hidden"
+            >
+              <Menu size={18} />
+            </button>
+            <div className="hidden lg:flex items-center">
+              {!isSidebarOpen && (
+                <button
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:border-cyan-500/50 transition-all group"
+                >
+                  <ChevronRight size={18} className="group-hover:scale-110 transition-transform" />
+                </button>
+              )}
+              {isSidebarOpen && (
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-cyan-400 hover:text-white hover:border-cyan-500/50 transition-all group"
+                >
+                  <ChevronLeft size={18} className="group-hover:scale-110 transition-transform" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Astra Header - Centered using flex */}
@@ -682,7 +704,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-[85%] flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                <div className={`max-w-[95%] md:max-w-[85%] flex gap-2 md:gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${
                     msg.role === 'user' ? 'bg-zinc-900 border-zinc-700 text-zinc-400' : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-400'
                   }`}>
@@ -811,7 +833,7 @@ export default function Home() {
         </div>
 
         {/* Input Area */}
-        <div className="p-8 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent relative z-20">
+        <div className="p-4 md:p-8 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent relative z-20 shrink-0">
           <div className="max-w-4xl mx-auto relative group">
             <div className="absolute inset-0 bg-cyan-500/10 blur-2xl rounded-[32px] opacity-0 group-focus-within:opacity-100 transition-opacity duration-700" />
             <div className="relative flex items-center gap-4 bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-2 pl-6 rounded-[24px] focus-within:border-cyan-500/40 focus-within:bg-white/[0.05] transition-all duration-300 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
