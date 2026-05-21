@@ -15,4 +15,4 @@ jobs:
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push --force https://Chandann-23:$HF_TOKEN@huggingface.co/spaces/Chandann-23/astra-backend main
+        run: git push --force https://Chandann-23:$HF_TOKEN@huggingface.co/spaces/Chandann-23/astra-backend-v2 main
