@@ -19,3 +19,5 @@ pydantic>=2.0.0
 sentence-transformers
 torch
 tenacity
+python-multipart
+pypdf

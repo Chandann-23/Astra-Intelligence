@@ -3,7 +3,7 @@ import os
 import json
 import asyncio
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -27,6 +27,7 @@ app.add_middleware(
 class AnalysisRequest(BaseModel):
     topic: str
     history: list = []
+    rag_mode: str = "general"
 
 @app.get("/")
 def read_root():
@@ -34,7 +35,7 @@ def read_root():
     return {
         "app": "Astra Intelligence Engine V2",
         "status": "operational",
-        "endpoints": ["/health", "/stream"]
+        "endpoints": ["/health", "/stream", "/upload"]
     }
 
 @app.get("/health")
@@ -52,9 +53,39 @@ def health():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Upload notes or PDF to local Neo4j RAG"""
+    try:
+        from app.tools.graph_tool import neo4j_manager
+        content = await file.read()
+        text = ""
+        
+        if file.filename.lower().endswith(".pdf"):
+            import io
+            from pypdf import PdfReader
+            pdf = PdfReader(io.BytesIO(content))
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        else:
+            text = content.decode("utf-8")
+            
+        if not text.strip():
+            raise HTTPException(status_code=400, detail="File is empty or text could not be extracted.")
+            
+        success = await neo4j_manager.ingest_document(file.filename, text)
+        if success:
+            return {"status": "success", "message": f"Successfully ingested {file.filename} into NotebookLM index."}
+        else:
+            raise HTTPException(status_code=500, detail="Ingestion failed. Database offline.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):
-    print(f'DEBUG: Request for: {request.topic}')
+    print(f'DEBUG: Request for: {request.topic} | RAG Mode: {request.rag_mode}')
     try:
         queue = asyncio.Queue()
         initial_state = {
@@ -63,7 +94,8 @@ async def stream_analysis(request: AnalysisRequest):
             "critique": "", 
             "revision_count": 0, 
             "storage_result": "",
-            "queue": queue
+            "queue": queue,
+            "rag_mode": request.rag_mode
         }
         
         async def run_graph(q, state):

@@ -26,7 +26,9 @@ import {
   ShieldCheck,
   Network,
   Eye,
-  Menu
+  Menu,
+  Paperclip,
+  BookOpen
 } from 'lucide-react';
 
 const GraphView = dynamic(() => import('@/components/graph/GraphView'), { ssr: false });
@@ -48,6 +50,40 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [isWarmingUp, setIsWarmingUp] = useState(false);
+  const [ragMode, setRagMode] = useState<"general" | "strict_local">("general");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      setToast(`Uploading ${file.name}...`);
+      const response = await fetch(`${BACKEND_URL}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        setToast(`Success: ${data.message}`);
+        setRagMode("strict_local");
+      } else {
+        setToast(`Error: ${data.detail || 'Upload failed'}`);
+      }
+    } catch (err) {
+      setToast('Upload failed to connect to backend.');
+    } finally {
+      setLoading(false);
+      setTimeout(() => setToast(null), 3000);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
   const [logs, setLogs] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -148,7 +184,8 @@ export default function Home() {
         },
         body: JSON.stringify({
           topic: currentTopic,
-          history: messages.map(m => ({ role: m.role, content: m.content }))
+          history: messages.map(m => ({ role: m.role, content: m.content })),
+          rag_mode: ragMode
         }),
       });
 
@@ -865,7 +902,41 @@ export default function Home() {
         <div className="p-4 md:p-8 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent relative z-20 shrink-0">
           <div className="max-w-4xl mx-auto relative group">
             <div className="absolute inset-0 bg-cyan-500/10 blur-2xl rounded-[32px] opacity-0 group-focus-within:opacity-100 transition-opacity duration-700" />
+            
+            {/* RAG Mode Toggle */}
+            <div className="flex items-center gap-2 mb-2 ml-4">
+              <button 
+                onClick={() => setRagMode(ragMode === "general" ? "strict_local" : "general")}
+                className={`text-[10px] uppercase tracking-widest font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all border ${
+                  ragMode === "strict_local" 
+                    ? "bg-purple-500/20 text-purple-400 border-purple-500/50" 
+                    : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300"
+                }`}
+              >
+                <BookOpen size={12} />
+                {ragMode === "strict_local" ? "Notebook Mode: Active" : "Notebook Mode: Off"}
+              </button>
+            </div>
+
             <div className="relative flex items-center gap-4 bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-2 pl-6 rounded-[24px] focus-within:border-cyan-500/40 focus-within:bg-white/[0.05] transition-all duration-300 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                accept=".pdf,.txt,.md"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                title="Upload Context Document"
+                className={`p-2 rounded-xl transition-all ${
+                  loading ? 'opacity-50 cursor-not-allowed text-zinc-600' : 'text-zinc-400 hover:text-cyan-400 hover:bg-white/5'
+                }`}
+              >
+                <Paperclip size={18} />
+              </button>
+              
               <input
                 className="flex-1 bg-transparent border-none py-4 text-sm text-white placeholder-zinc-500 focus:outline-none font-medium"
                 placeholder="Initialize research sequence..."

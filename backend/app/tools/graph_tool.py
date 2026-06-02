@@ -49,7 +49,7 @@ class AsyncNeo4jManager:
             try:
                 await self.create_vector_index()
                 if await self.verify_index():
-                    print("SUCCESS: Vector Index 'concept_embeddings' is ONLINE.")
+                    print("SUCCESS: Vector Indexes are ONLINE.")
                     self._index_initialized = True
             except Exception as e:
                 print(f"WARNING: Index initialization deferred: {e}")
@@ -61,7 +61,7 @@ class AsyncNeo4jManager:
     async def create_vector_index(self):
         if not self.driver: return
         async with self.driver.session() as session:
-            query = """
+            query1 = """
             CREATE VECTOR INDEX concept_embeddings IF NOT EXISTS
             FOR (n:Concept)
             ON (n.embedding)
@@ -72,21 +72,90 @@ class AsyncNeo4jManager:
               }
             }
             """
+            query2 = """
+            CREATE VECTOR INDEX document_embeddings IF NOT EXISTS
+            FOR (n:DocumentChunk)
+            ON (n.embedding)
+            OPTIONS {
+              indexConfig: {
+                `vector.dimensions`: 384,
+                `vector.similarity_function`: 'cosine'
+              }
+            }
+            """
             try:
-                await session.run(query)
-                print("Vector index initialization command sent.")
+                await session.run(query1)
+                await session.run(query2)
+                print("Vector index initialization commands sent.")
             except Exception as e:
                 print(f"Index creation skipped/failed: {e}")
 
     async def verify_index(self):
         if not self.driver: return False
         async with self.driver.session() as session:
-            query = "SHOW INDEXES YIELD name, type, state WHERE name = 'concept_embeddings'"
+            query = "SHOW INDEXES YIELD name, type, state WHERE name = 'concept_embeddings' OR name = 'document_embeddings'"
             result = await session.run(query)
-            record = await result.single()
-            if record and record['state'] == 'ONLINE':
+            records = await result.data()
+            if records and all(record.get('state') == 'ONLINE' for record in records):
                 return True
-            return False
+            return len(records) > 0
+
+    async def ingest_document(self, filename: str, text: str):
+        await self.ensure_index()
+        if not self.driver: return False
+        
+        chunk_size = 500
+        overlap = 50
+        chunks = []
+        for i in range(0, len(text), chunk_size - overlap):
+            chunk = text[i:i+chunk_size].strip()
+            if chunk:
+                chunks.append(chunk)
+            
+        success_count = 0
+        async with self.driver.session() as session:
+            for idx, chunk in enumerate(chunks):
+                embedding = self.get_embedding(chunk)
+                query = """
+                MERGE (d:DocumentChunk {id: $id})
+                ON CREATE SET d.filename = $filename, d.text = $text, d.embedding = $emb, d.chunk_index = $idx
+                ON MATCH SET d.text = $text, d.embedding = $emb
+                """
+                try:
+                    await session.run(query, id=f"{filename}_{idx}", filename=filename, text=chunk, emb=embedding, idx=idx)
+                    success_count += 1
+                except Exception as e:
+                    print(f"Failed to ingest chunk {idx}: {e}")
+        return success_count == len(chunks)
+
+    async def document_vector_search(self, query: str, top_k: int = 5):
+        await self.ensure_index()
+        if not self.driver: return [], "Database offline."
+        
+        query_embedding = self.get_embedding(query)
+        
+        async with self.driver.session() as session:
+            search_query = """
+            CALL db.index.vector.queryNodes('document_embeddings', $k, $query_emb)
+            YIELD node, score
+            RETURN node.filename as filename, node.text as text, score
+            ORDER BY score DESC
+            LIMIT $k
+            """
+            result = await session.run(search_query, query_emb=query_embedding, k=top_k)
+            records = await result.data()
+            
+            knowledge_bits = []
+            top_score = 0
+            
+            for record in records:
+                bit = f"[Source File: {record['filename']}] {record['text']}"
+                knowledge_bits.append(bit)
+                if record['score'] > top_score:
+                    top_score = record['score']
+            
+            reasoning = f"Strict RAG Mode: Retrieved {len(knowledge_bits)} chunks from local documents with top confidence score {top_score:.2f}."
+            return knowledge_bits, reasoning
 
     async def upsert_relationship(self, source_node: str, relationship: str, target_node: str, properties: dict = None):
         await self.ensure_index()

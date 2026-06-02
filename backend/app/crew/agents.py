@@ -8,6 +8,7 @@ from litellm.exceptions import RateLimitError
 
 import litellm
 from langgraph.graph import StateGraph, END
+from app.tools.graph_tool import neo4j_manager
 
 load_dotenv()
 
@@ -18,6 +19,7 @@ class AgentState(TypedDict):
     revision_count: int
     storage_result: str
     queue: Any # asyncio.Queue
+    rag_mode: str
 
 @retry(
     stop=stop_after_attempt(3),
@@ -26,8 +28,6 @@ class AgentState(TypedDict):
 )
 async def invoke_llm(prompt: str, queue: asyncio.Queue = None) -> str:
     """Invoke LLM through LiteLLM with async streaming and tenacity backoff"""
-    
-    # We natively use Gemini first, or fallback to SambaNova if API keys dictate.
     api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("SAMBANOVA_API_KEY")
     if not api_key:
         return "Error: API key not found in environment."
@@ -67,15 +67,35 @@ async def researcher_node(state: AgentState) -> AgentState:
     else:
         state["revision_count"] += 1
         
-    prompt = f"""
-    You are a research analyst. Analyze the following query:
-    Query: {state.get('query', '')}
-    Previous research: {state.get('research_output', '')}
-    Previous critique: {state.get('critique', '')}
-    Revision count: {state['revision_count']}
+    rag_mode = state.get("rag_mode", "general")
     
-    Provide a detailed analysis with insights, data points, and conclusions.
-    """
+    if rag_mode == "strict_local":
+        docs, reasoning = await neo4j_manager.document_vector_search(state.get('query', ''))
+        context = "\n".join(docs)
+        
+        prompt = f"""
+        You are a STRICT Local RAG assistant (NotebookLM mode). You must answer the user's query ONLY using the provided Context Notes below.
+        DO NOT use any outside internet knowledge. If the answer is not contained in the Context Notes, say exactly: "I cannot find the answer in the provided notes."
+        
+        Context Notes:
+        {context}
+        
+        Query: {state.get('query', '')}
+        Previous research: {state.get('research_output', '')}
+        Previous critique: {state.get('critique', '')}
+        """
+        if state.get("queue"):
+            await state["queue"].put({"status": "researching", "message": f"Scanning local documents: {reasoning}", "node": "researcher"})
+    else:
+        prompt = f"""
+        You are a research analyst. Analyze the following query:
+        Query: {state.get('query', '')}
+        Previous research: {state.get('research_output', '')}
+        Previous critique: {state.get('critique', '')}
+        Revision count: {state['revision_count']}
+        
+        Provide a detailed analysis with insights, data points, and conclusions.
+        """
     
     response = await invoke_llm(prompt, state.get("queue"))
     
@@ -102,8 +122,6 @@ async def critic_node(state: AgentState) -> AgentState:
     response = await invoke_llm(prompt, state.get("queue"))
     state["critique"] = response
     return state
-
-from app.tools.graph_tool import neo4j_manager
 
 async def save_research_to_graph(state: AgentState) -> AgentState:
     research_content = state.get("research_output", "")
