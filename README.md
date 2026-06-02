@@ -10,14 +10,7 @@ dockerfile: backend/Dockerfile
 pinned: false
 ---
 
-| Space Metadata | Value |
-| :--- | :--- |
-| **Title** | Astra Backend |
-| **Emoji** | 🚀 |
-| **ColorFrom** | blue |
-| **ColorTo** | indigo |
-| **SDK** | docker |
-| **App Port** | 7860 |
+
 
 # Astra Intelligence: Advanced Agentic Research Framework
 
@@ -46,38 +39,7 @@ Originally engineered as an advanced academic project at Presidency University, 
 
 Astra Intelligence coordinates asynchronous processes across web interfaces, AI gateways, persistent graph databases, and web search engines:
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Recruiter / User
-    participant FE as Next.js 16 UI (React 19)
-    participant BE as FastAPI Backend (Port 7860)
-    participant LG as LangGraph Stateful Engine
-    participant AG as LiteLLM AI Gateway (Port 4000)
-    participant DB as Neo4j Graph DB (AuraDB Cloud)
-    participant SE as Tavily Search API
 
-    User->>FE: Submits complex research query
-    FE->>BE: Initiates POST /stream (Server-Sent Events)
-    BE->>LG: Spawns Graph with initial query state
-    
-    rect rgb(30, 30, 45)
-        note over LG, AG: Stateful Iteration Loop (Researcher-Critic Cycle)
-        LG->>SE: Lead Researcher node fetches real-time sources
-        SE-->>LG: Real-time authoritative sources returned
-        LG->>AG: Call Llama-3.3-70B via SambaNova (GLM-5.1 alias)
-        AG-->>LG: Generates high-fidelity research report draft
-        LG->>AG: Senior Critic node reviews findings & provides critique
-        note over LG: If APPROVED or revision_count >= 2, proceed; else loop
-    end
-
-    LG->>DB: Storage agent commits extracted entities (Cypher MERGE)
-    DB-->>LG: Transaction committed successfully
-    LG-->>BE: Streams state updates (researching -> critiquing -> storing)
-    BE-->>FE: Streamed Server-Sent Events (SSE) data chunks
-    FE->>FE: Render interactive 2D Force Graph (D3 Force) & active node trace
-    FE-->>User: Beautiful knowledge graph & comprehensive markdown report
-```
 
 ---
 
