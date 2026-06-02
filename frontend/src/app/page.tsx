@@ -38,6 +38,8 @@ import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import ChatInput from '@/components/chat/ChatInput';
 import MessageList from '@/components/chat/MessageList';
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -48,6 +50,60 @@ export default function Home() {
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [isWarmingUp, setIsWarmingUp] = useState(false);
   const [ragMode, setRagMode] = useState<"general" | "strict_local">("general");
+  const [currentChatId, setCurrentChatId] = useState<string>("");
+
+  useEffect(() => {
+    setCurrentChatId(uuidv4());
+  }, []);
+
+  // Auto-save chat history to Supabase
+  useEffect(() => {
+    if (!currentChatId || messages.length <= 1) return;
+    
+    const saveChat = async () => {
+      try {
+        const firstUserMsg = messages.find(m => m.role === 'user');
+        const chatTitle = firstUserMsg ? firstUserMsg.content.substring(0, 40) + (firstUserMsg.content.length > 40 ? '...' : '') : 'New Research';
+        
+        await supabase.from('chats').upsert({
+          id: currentChatId,
+          title: chatTitle,
+          messages: messages,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      } catch (e) {
+        console.error("Failed to save chat:", e);
+      }
+    };
+
+    const timeoutId = setTimeout(saveChat, 1500);
+    return () => clearTimeout(timeoutId);
+  }, [messages, currentChatId]);
+
+  const loadChat = async (chatId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('id', chatId)
+        .single();
+        
+      if (error) throw error;
+      if (data) {
+        setCurrentChatId(data.id);
+        setMessages(data.messages);
+        setTopic("");
+        setLogs([]);
+        setLoading(false);
+        setIsWarmingUp(false);
+        setActiveAgent(null);
+        if (isMobileNavOpen) setIsMobileNavOpen(false);
+      }
+    } catch (err) {
+      console.error("Failed to load chat", err);
+      showToast("Failed to load chat history");
+    }
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -517,13 +573,16 @@ export default function Home() {
         isMobileNavOpen={isMobileNavOpen}
         setIsMobileNavOpen={setIsMobileNavOpen}
         resetChat={() => {
-          setMessages([]);
+          setMessages([{ id: '1', role: 'astra', content: "System initialized. How can I assist with your research today?" }]);
+          setCurrentChatId(uuidv4());
           setLogs([]);
           setTopic("");
           setLoading(false);
           setIsWarmingUp(false);
           setActiveAgent(null);
         }}
+        loadChat={loadChat}
+        currentChatId={currentChatId}
         showToast={showToast}
         isAboutOpen={isAboutOpen}
         setIsAboutOpen={setIsAboutOpen}
