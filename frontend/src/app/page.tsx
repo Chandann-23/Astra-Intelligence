@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import AnalysisDisplay from '@/components/AnalysisDisplay';
@@ -61,14 +61,34 @@ export default function Home() {
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const strategyEndRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isAutoScrollPausedRef = useRef(false);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
     strategyEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
-  const scrollToChatBottom = () => {
+  const scrollToChatBottom = useCallback(() => {
+    if (isAutoScrollPausedRef.current) return;
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    
+    // Check if user is near the bottom (within a 100px buffer)
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+    
+    if (isAtBottom) {
+      isAutoScrollPausedRef.current = false;
+    } else {
+      // Only pause if currently loading/streaming content
+      if (loading) {
+        isAutoScrollPausedRef.current = true;
+      }
+    }
   };
 
   const showToast = (message: string) => {
@@ -108,6 +128,7 @@ export default function Home() {
   const handleAnalyze = async () => {
     if (!topic) return;
     
+    isAutoScrollPausedRef.current = false; // Reset scroll hold for new query
     const userMessage: Message = { id: Date.now().toString(), role: 'user', content: topic };
     setMessages(prev => [...prev, userMessage]);
     const currentTopic = topic;
@@ -696,7 +717,11 @@ export default function Home() {
         </header>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scroll-smooth bg-transparent relative">
+        <div 
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scroll-smooth bg-transparent relative"
+        >
           <AnimatePresence>
             {messages.map((msg) => (
               <motion.div

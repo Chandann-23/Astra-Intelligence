@@ -32,37 +32,15 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
   };
 
   const cleanedResult = cleanText(result);
-  const [displayedText, setDisplayedText] = useState("");
-  const [isTyping, setIsTyping] = useState(true);
 
   // Determine what text to display
   const textToDisplay = partialResult || cleanedResult;
 
+  // Trigger auto-scroll on new text chunk arrivals
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDisplayedText("");
-      setIsTyping(true);
-    }, 0);
-    let i = 0;
-    const intervalId = setInterval(() => {
-      setDisplayedText((prev) => prev + textToDisplay.charAt(i));
-      i++;
-      
-      // Auto-scroll during typing
-      if (onScroll && i % 10 === 0) { // Scroll every 10 characters to avoid excessive calls
-        onScroll();
-      }
-      
-      if (i >= textToDisplay.length) {
-        clearInterval(intervalId);
-        setIsTyping(false);
-      }
-    }, 10); // Slightly faster for markdown
-
-    return () => {
-      clearTimeout(timeoutId);
-      clearInterval(intervalId);
-    };
+    if (onScroll) {
+      onScroll();
+    }
   }, [textToDisplay, onScroll]);
 
   return (
@@ -146,9 +124,9 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
                 code: ({node, ...props}) => <code className="bg-zinc-800 text-white px-2 py-1 rounded font-mono text-[0.9em] border border-white/10" {...props} />,
               }}
             >
-              {displayedText}
+              {textToDisplay}
             </ReactMarkdown>
-            {isTyping && (
+            {status !== 'completed' && (
               <motion.span
                 animate={{ opacity: [1, 0] }}
                 transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
@@ -171,7 +149,7 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
 
       {/* Terminal Footer */}
       <div className="bg-emerald-950/10 border-t border-emerald-500/10 px-6 py-2 flex justify-between items-center text-[9px] opacity-40 uppercase tracking-widest relative z-30 font-mono">
-        <div>Ln {displayedText.split('\n').length}, Col {displayedText.split('\n').pop()?.length || 0}</div>
+        <div>Ln {textToDisplay.split('\n').length}, Col {textToDisplay.split('\n').pop()?.length || 0}</div>
         <div>UTF-8</div>
         <div className="flex items-center gap-1.5">
           <div className="w-1 h-1 rounded-full bg-emerald-500" />
