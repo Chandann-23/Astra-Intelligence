@@ -1,87 +1,67 @@
 import os
 import json
-import time
-from typing import TypedDict, Annotated, Generator
+import asyncio
+from typing import TypedDict, Annotated, Any
 from dotenv import load_dotenv
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from litellm.exceptions import RateLimitError
 
-# LiteLLM AI Gateway Architecture
 import litellm
 from langgraph.graph import StateGraph, END
-from langchain_core.tools import tool
 
-# Load environment variables FIRST
 load_dotenv()
 
-# High-Performance Llama Configuration via SambaNova Free Tier
-# Use top-tier Meta-Llama-3.3-70B-Instruct for maximum speed and capability
-PRODUCTION_MODEL = "sambanova/Meta-Llama-3.3-70B-Instruct"
-
-# Phase 2: Define AgentState
 class AgentState(TypedDict):
     query: str
     research_output: str
     critique: str
     revision_count: int
-    storage_result: str 
+    storage_result: str
+    queue: Any # asyncio.Queue
 
-def invoke_llm(prompt: str) -> str:
-    """Invoke LLM through LiteLLM AI Gateway with robust error handling and retries"""
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(RateLimitError)
+)
+async def invoke_llm(prompt: str, queue: asyncio.Queue = None) -> str:
+    """Invoke LLM through LiteLLM with async streaming and tenacity backoff"""
     
-    api_key = os.getenv("SAMBANOVA_API_KEY")
-    
-    # Validation check to stop "False" key errors before they hit the API
+    # We natively use Gemini first, or fallback to SambaNova if API keys dictate.
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("SAMBANOVA_API_KEY")
     if not api_key:
-        print("❌ CRITICAL ERROR: SAMBANOVA_API_KEY is missing from environment!")
-        return "Error: SAMBANOVA_API_KEY not found. Please check SambaNova Secrets."
+        return "Error: API key not found in environment."
 
-    print(f"🚀 Astra Engine: Running on GLM-5.1 ({PRODUCTION_MODEL})")
-    
-    # Retry logic for rate limit errors
-    max_retries = 2
-    for attempt in range(max_retries):
-        try:
-            # LiteLLM call optimized for GLM-5.1's long-horizon capabilities
-            response = litellm.completion(
-                model=PRODUCTION_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                max_tokens=4096, # Increased to prevent mid-sentence cutoffs
-                api_key=api_key,
-                timeout=300 # Supports GLM-5.1's 8-hour research sessions
-            )
-            return response.choices[0].message.content
-            
-        except Exception as e:
-            error_msg = str(e)
-            print(f"LiteLLM Error (attempt {attempt + 1}): {error_msg}")
-            
-            # Check specifically for rate limit errors
-            if "rate limit" in error_msg.lower() or "ratelimit" in error_msg.lower():
-                if attempt < max_retries - 1:
-                    print(f"⏳ Rate limit hit. Waiting 10 seconds before retry...")
-                    time.sleep(10)
-                    continue
-                else:
-                    return "Error: Rate limit exceeded. Please try again in a few minutes."
-            
-            # Check specifically for authentication issues
-            if "401" in error_msg or "auth" in error_msg.lower():
-                return "Error: Authentication failed. Verify HUGGINGFACE_API_KEY."
-                
-            # For other errors, don't retry
-            if attempt == 0:  # Only return non-rate-limit errors immediately
-                return f"Error: {error_msg}"
-    
-    return "Error: Failed after multiple attempts."
+    model = "gemini/gemini-1.5-flash" if os.getenv("GOOGLE_API_KEY") else "sambanova/Meta-Llama-3.3-70B-Instruct"
 
-# --- Node Definitions ---
+    try:
+        response = await litellm.acompletion(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=4096,
+            api_key=api_key,
+            stream=True
+        )
+        
+        full_text = ""
+        async for chunk in response:
+            content = chunk.choices[0].delta.content
+            if content:
+                full_text += content
+                if queue:
+                    await queue.put({"partial_result": content})
+                    
+        return full_text
+        
+    except RateLimitError as e:
+        print("Rate limit hit, tenacity backing off...")
+        raise e
+    except Exception as e:
+        error_msg = str(e)
+        return f"Error: {error_msg}"
 
-def researcher_node(state: AgentState) -> AgentState:
-    """Analyze the query and generate a research report"""
-    # Rate limit protection - add delay
-    time.sleep(3)
-    
-    # Ensure revision_count is initialized and increment it
+async def researcher_node(state: AgentState) -> AgentState:
     if state.get("revision_count") is None:
         state["revision_count"] = 0
     else:
@@ -97,23 +77,17 @@ def researcher_node(state: AgentState) -> AgentState:
     Provide a detailed analysis with insights, data points, and conclusions.
     """
     
-    response = invoke_llm(prompt)
+    response = await invoke_llm(prompt, state.get("queue"))
     
     if "Error:" in response:
         state["research_output"] = response
-        # Terminate early on API failure
         state["revision_count"] = 99 
     else:
         state["research_output"] = response
         
     return state
 
-def critic_node(state: AgentState) -> AgentState:
-    """Review the report for depth and accuracy"""
-    # Rate limit protection - add delay
-    time.sleep(3)
-    
-    # Don't run critique if research failed
+async def critic_node(state: AgentState) -> AgentState:
     if "Error:" in state.get("research_output", ""):
         return state
 
@@ -125,52 +99,29 @@ def critic_node(state: AgentState) -> AgentState:
     Otherwise, provide feedback.
     """
     
-    response = invoke_llm(prompt)
+    response = await invoke_llm(prompt, state.get("queue"))
     state["critique"] = response
     return state
 
-from langchain_community.graphs import Neo4jGraph
+from app.tools.graph_tool import neo4j_manager
 
-# Grab the active instance connection wrapper safely
-graph = None
-try:
-    neo4j_uri = os.getenv("NEO4J_URI")
-    if neo4j_uri:
-        graph = Neo4jGraph(
-            url=neo4j_uri,
-            username=os.getenv("NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j")),
-            password=os.getenv("NEO4J_PASSWORD"),
-            database="neo4j", # If aura rejects, we can also use database="" or let the driver auto-select
-            refresh_schema=False # Temporarily disable auto-refresh on boot to prevent the database look-up crash
-        )
-        print("🚀 Astra Engine: Successfully initialized Neo4jGraph wrapper.")
-    else:
-        print("⚠️ Astra Engine [SRE_WARN]: NEO4J_URI is missing from environment. Database writes will be bypassed.")
-except Exception as e:
-    print(f"❌ Astra Engine [SRE_ERROR]: Failed to initialize Neo4jGraph wrapper on boot: {str(e)}")
-
-def save_research_to_graph(state: AgentState) -> AgentState:
-    """LangGraph node to force-commit research entities to Neo4j Cloud Instance"""
+async def save_research_to_graph(state: AgentState) -> AgentState:
     research_content = state.get("research_output", "")
     query_topic = state.get("query", "General Research")
     
     if not research_content or "Error:" in research_content:
-        print("[SYSTEM_WARN]: No valid content available to write to Neo4j.")
         state["storage_result"] = "Skipped: Research contained errors or was empty."
         return state
 
-    if graph is None:
-        print("⚠️ Astra Engine [SRE_WARN]: Graph connection is offline/unconfigured. Bypassing write.")
+    if not neo4j_manager.driver:
         state["storage_result"] = "Skipped: Neo4j database is unconfigured or offline."
         return state
 
-    # Constructing an explicit Cypher execution statement to guarantee node creation
     cypher_write_query = """
-    MERGE (q:Concept {id: $topic})
+    MERGE (q:Concept {name: $topic})
     SET q.updatedAt = timestamp()
     
-    // Split content briefly into summary elements to simulate structured extraction nodes
-    MERGE (r:ResearchSummary {id: $topic + "_Summary"})
+    MERGE (r:ResearchSummary {name: $topic + "_Summary"})
     SET r.raw_data = substring($content, 0, 2000),
         r.processedAt = timestamp()
         
@@ -179,48 +130,29 @@ def save_research_to_graph(state: AgentState) -> AgentState:
     """
     
     try:
-        # Force execution against the implicit default instance database rather than a named target
-        result = graph.query(cypher_write_query, params={
+        await neo4j_manager.execute_query(cypher_write_query, parameters={
             "topic": query_topic,
             "content": research_content
         })
-        print(f"[SUCCESS]: Forced write to Neo4j Aura. Core transaction committed: {result}")
-        state["storage_result"] = "Success: Forced write to Neo4j Aura"
-    except Exception as db_err:
-        # Fallback directly to the bare driver session if the community wrapper forces 'neo4j'
-        try:
-            print("[SYSTEM]: Wrapper failed. Attempting native driver session fallback...")
-            with graph._driver.session() as session:
-                result = session.run(cypher_write_query, {
-                    "topic": query_topic,
-                    "content": research_content
-                })
-                print(f"[SUCCESS]: Native driver session commit complete.")
-                state["storage_result"] = "Success: Native driver session commit complete."
-        except Exception as native_err:
-            print(f"[CRITICAL_ERROR]: Failed writing graph document to Neo4j Instance: {str(native_err)}")
-            state["storage_result"] = f"Storage error: {str(native_err)}"
+        state["storage_result"] = "Success: Wrote to Neo4j Async"
+    except Exception as e:
+        state["storage_result"] = f"Storage error: {str(e)}"
         
     return state
-
-# --- Workflow Logic ---
 
 def should_continue(state: AgentState) -> str:
     critique = state.get('critique', '')
     rev_count = state.get('revision_count', 0)
     
-    # Immediate exit on errors
     if "Error:" in state.get("research_output", "") or rev_count > 5:
         return "END"
     
     if "APPROVED" in critique.upper() or rev_count >= 2:
         return "storage"
     
-    # Update revision count in state before looping back
     state["revision_count"] = rev_count + 1
     return "researcher"
 
-# Build Graph
 workflow = StateGraph(AgentState)
 workflow.add_node("researcher", researcher_node)
 workflow.add_node("critic", critic_node)

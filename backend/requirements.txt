@@ -2,7 +2,7 @@ fastapi
 uvicorn
 python-dotenv
 # Core AI SDKs - LiteLLM AI Gateway Architecture (Latest for GLM-5.1)
-litellm[proxy]==1.83.0
+litellm==1.44.0
 apscheduler>=3.10.0
 # Hugging Face Integration (for fallback)
 huggingface_hub==0.23.2
@@ -11,6 +11,11 @@ langchain-community
 # Graph Engine - Version adjusted for availability
 langgraph==0.1.4
 # Database & Tools
-neo4j
+neo4j[async]
 tavily-python
 pydantic>=2.0.0
+
+# V2 Additions
+sentence-transformers
+torch
+tenacity

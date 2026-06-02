@@ -186,15 +186,13 @@ export default function Home() {
               
               // Handle completion
               if (data.status === 'completed' && data.result) {
-                const astraMessage: Message = { 
-                  id: (Date.now() + 1).toString(), 
-                  role: 'astra', 
-                  content: data.result,
-                  type: 'analysis',
-                  retrievedNodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined,
-                  isMemoryAccessed: memoryAccessed
-                };
-                setMessages(prev => [...prev, astraMessage]);
+                setMessages(prev => {
+                  const lastMessage = prev[prev.length - 1];
+                  if (lastMessage && lastMessage.role === 'astra' && lastMessage.type === 'analysis') {
+                    return [...prev.slice(0, -1), { ...lastMessage, content: data.result, retrievedNodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined, isMemoryAccessed: memoryAccessed }];
+                  }
+                  return [...prev, { id: (Date.now() + 1).toString(), role: 'astra', content: data.result, type: 'analysis', retrievedNodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined, isMemoryAccessed: memoryAccessed }];
+                });
                 setActiveAgent(null);
                 setLogs(prev => [...prev, "[SYSTEM]: Analysis sequence complete."]);
                 setLoading(false);
@@ -214,16 +212,21 @@ export default function Home() {
             }
             // Handle partial results during streaming
             else if (data.partial_result) {
-              // Update the last message with partial result
               setMessages(prev => {
                 const lastMessage = prev[prev.length - 1];
                 if (lastMessage && lastMessage.role === 'astra' && lastMessage.type === 'analysis') {
+                  // Append the token to the existing stream
                   return [
                     ...prev.slice(0, -1),
-                    { ...lastMessage, content: data.partial_result }
+                    { ...lastMessage, content: lastMessage.content + data.partial_result }
+                  ];
+                } else {
+                  // Create the initial stream message
+                  return [
+                    ...prev,
+                    { id: Date.now().toString(), role: 'astra', content: data.partial_result, type: 'analysis', isMemoryAccessed: memoryAccessed }
                   ];
                 }
-                return prev;
               });
             }
             // Legacy support for old format
