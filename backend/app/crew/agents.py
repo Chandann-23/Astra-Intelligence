@@ -131,14 +131,23 @@ def critic_node(state: AgentState) -> AgentState:
 
 from langchain_community.graphs import Neo4jGraph
 
-# Grab the active instance connection wrapper
-graph = Neo4jGraph(
-    url=os.getenv("NEO4J_URI"),
-    username=os.getenv("NEO4J_USERNAME", "neo4j"),
-    password=os.getenv("NEO4J_PASSWORD"),
-    database="neo4j", # If aura rejects, we can also use database="" or let the driver auto-select
-    refresh_schema=False # Temporarily disable auto-refresh on boot to prevent the database look-up crash
-)
+# Grab the active instance connection wrapper safely
+graph = None
+try:
+    neo4j_uri = os.getenv("NEO4J_URI")
+    if neo4j_uri:
+        graph = Neo4jGraph(
+            url=neo4j_uri,
+            username=os.getenv("NEO4J_USERNAME", os.getenv("NEO4J_USER", "neo4j")),
+            password=os.getenv("NEO4J_PASSWORD"),
+            database="neo4j", # If aura rejects, we can also use database="" or let the driver auto-select
+            refresh_schema=False # Temporarily disable auto-refresh on boot to prevent the database look-up crash
+        )
+        print("🚀 Astra Engine: Successfully initialized Neo4jGraph wrapper.")
+    else:
+        print("⚠️ Astra Engine [SRE_WARN]: NEO4J_URI is missing from environment. Database writes will be bypassed.")
+except Exception as e:
+    print(f"❌ Astra Engine [SRE_ERROR]: Failed to initialize Neo4jGraph wrapper on boot: {str(e)}")
 
 def save_research_to_graph(state: AgentState) -> AgentState:
     """LangGraph node to force-commit research entities to Neo4j Cloud Instance"""
@@ -148,6 +157,11 @@ def save_research_to_graph(state: AgentState) -> AgentState:
     if not research_content or "Error:" in research_content:
         print("[SYSTEM_WARN]: No valid content available to write to Neo4j.")
         state["storage_result"] = "Skipped: Research contained errors or was empty."
+        return state
+
+    if graph is None:
+        print("⚠️ Astra Engine [SRE_WARN]: Graph connection is offline/unconfigured. Bypassing write.")
+        state["storage_result"] = "Skipped: Neo4j database is unconfigured or offline."
         return state
 
     # Constructing an explicit Cypher execution statement to guarantee node creation
