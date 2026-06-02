@@ -137,6 +137,7 @@ export default function Home() {
   };
   const [logs, setLogs] = useState<string[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isGraphVisible, setIsGraphVisible] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState<'logs' | 'strategy' | 'graph' | null>(null);
@@ -568,35 +569,107 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Left Navigation Sidebar - Gemini Style */}
-      {/* Left Navigation Sidebar - Gemini Style */}
-      <Sidebar 
-        isMobileNavOpen={isMobileNavOpen}
-        setIsMobileNavOpen={setIsMobileNavOpen}
-        resetChat={() => {
-          setMessages([{ id: '1', role: 'astra', content: "System initialized. How can I assist with your research today?" }]);
-          setCurrentChatId(uuidv4());
-          setLogs([]);
-          setTopic("");
-          setLoading(false);
-          setIsWarmingUp(false);
-          setActiveAgent(null);
-        }}
-        loadChat={loadChat}
-        currentChatId={currentChatId}
-        showToast={showToast}
-        isAboutOpen={isAboutOpen}
-        setIsAboutOpen={setIsAboutOpen}
-      />
+      {/* Left Navigation Sidebar - Chat History */}
+      <AnimatePresence initial={false}>
+        {isHistoryOpen && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 240, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="hidden md:block h-full flex-shrink-0 overflow-hidden"
+          >
+            <div className="w-[240px] h-full">
+              <Sidebar 
+                isMobileNavOpen={false}
+                setIsMobileNavOpen={setIsMobileNavOpen}
+                resetChat={() => {
+                  setMessages([{ id: '1', role: 'astra', content: "System initialized. How can I assist with your research today?" }]);
+                  setCurrentChatId(uuidv4());
+                  setLogs([]);
+                  setTopic("");
+                  setLoading(false);
+                  setIsWarmingUp(false);
+                  setActiveAgent(null);
+                }}
+                loadChat={loadChat}
+                currentChatId={currentChatId}
+                showToast={showToast}
+                isAboutOpen={isAboutOpen}
+                setIsAboutOpen={setIsAboutOpen}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Mobile Sidebar */}
+      <div className="md:hidden">
+        <Sidebar 
+          isMobileNavOpen={isMobileNavOpen}
+          setIsMobileNavOpen={setIsMobileNavOpen}
+          resetChat={() => {
+            setMessages([{ id: '1', role: 'astra', content: "System initialized. How can I assist with your research today?" }]);
+            setCurrentChatId(uuidv4());
+            setLogs([]);
+            setTopic("");
+            setLoading(false);
+            setIsWarmingUp(false);
+            setActiveAgent(null);
+          }}
+          loadChat={loadChat}
+          currentChatId={currentChatId}
+          showToast={showToast}
+          isAboutOpen={isAboutOpen}
+          setIsAboutOpen={setIsAboutOpen}
+        />
+      </div>
 
-      {/* Sidebar - Terminal Logs (25% width) */}
+      {/* Main Chat Area (75% width) */}
+      <div className={`flex-1 flex flex-col relative z-10 transition-all duration-500 w-full ${isSidebarOpen ? '' : ''}`}>
+
+        <Header 
+          isMobileNavOpen={isMobileNavOpen}
+          setIsMobileNavOpen={setIsMobileNavOpen}
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          isHistoryOpen={isHistoryOpen}
+          setIsHistoryOpen={setIsHistoryOpen}
+          ragMode={ragMode}
+          setRagMode={setRagMode}
+        />
+
+        {/* Messages Area */}
+        <MessageList 
+          messages={messages}
+          isWarmingUp={isWarmingUp}
+          loading={loading}
+          scrollContainerRef={scrollContainerRef}
+          handleScroll={handleScroll}
+          chatEndRef={chatEndRef}
+          scrollToChatBottom={scrollToChatBottom}
+        />
+
+        {/* Input Area */}
+        <ChatInput 
+          loading={loading}
+          topic={topic}
+          setTopic={setTopic}
+          handleAnalyze={handleAnalyze}
+          fileInputRef={fileInputRef}
+          handleFileUpload={handleFileUpload}
+        />
+      </div>
+
+      {/* Right Sidebar - Terminal Logs (Engine Insights) */}
       <AnimatePresence initial={false}>
         {isSidebarOpen && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: "25%", opacity: 1 }}
+            animate={{ width: 320, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="hidden lg:flex border-l border-zinc-800/50 bg-zinc-950/40 backdrop-blur-xl flex-col overflow-hidden z-10"
+            className="hidden lg:flex border-l border-white/5 bg-zinc-950/80 backdrop-blur-3xl flex-col overflow-hidden z-10 flex-shrink-0"
           >
             <div className="p-4 border-b border-zinc-800/50 flex justify-center items-center bg-black/20">
               <span className="text-cyan-400 font-bold tracking-tighter text-sm flex items-center gap-2">
@@ -725,40 +798,6 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Main Chat Area (75% width) */}
-      <div className={`flex-1 flex flex-col relative z-10 transition-all duration-500 w-full ${isSidebarOpen ? 'lg:w-[75%]' : ''}`}>
-
-        <Header 
-          isMobileNavOpen={isMobileNavOpen}
-          setIsMobileNavOpen={setIsMobileNavOpen}
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-          ragMode={ragMode}
-          setRagMode={setRagMode}
-        />
-
-        {/* Messages Area */}
-        <MessageList 
-          messages={messages}
-          isWarmingUp={isWarmingUp}
-          loading={loading}
-          scrollContainerRef={scrollContainerRef}
-          handleScroll={handleScroll}
-          chatEndRef={chatEndRef}
-          scrollToChatBottom={scrollToChatBottom}
-        />
-
-        {/* Input Area */}
-        <ChatInput 
-          loading={loading}
-          topic={topic}
-          setTopic={setTopic}
-          handleAnalyze={handleAnalyze}
-          fileInputRef={fileInputRef}
-          handleFileUpload={handleFileUpload}
-        />
-      </div>
 
       {/* Toast Notification */}
       <AnimatePresence>

@@ -1,11 +1,13 @@
 import React from 'react';
-import { Menu, ChevronRight, ChevronLeft, BookOpen } from 'lucide-react';
+import { Menu, ChevronRight, ChevronLeft, BookOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 
 interface HeaderProps {
   isMobileNavOpen: boolean;
   setIsMobileNavOpen: (v: boolean) => void;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
+  isHistoryOpen: boolean;
+  setIsHistoryOpen: (v: boolean) => void;
   ragMode: "general" | "strict_local";
   setRagMode: (mode: "general" | "strict_local") => void;
 }
@@ -15,12 +17,14 @@ export default function Header({
   setIsMobileNavOpen,
   isSidebarOpen,
   setIsSidebarOpen,
+  isHistoryOpen,
+  setIsHistoryOpen,
   ragMode,
   setRagMode
 }: HeaderProps) {
   return (
     <header className="p-4 md:p-6 border-b border-white/5 flex justify-between items-center bg-zinc-950/40 backdrop-blur-2xl relative z-30 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-      {/* Sidebar Toggle - Anchored Left */}
+      {/* Left Sidebar Toggle (History) */}
       <div className="flex items-center gap-2">
         <button
           onClick={() => setIsMobileNavOpen(true)}
@@ -28,23 +32,14 @@ export default function Header({
         >
           <Menu size={18} />
         </button>
-        <div className="hidden lg:flex items-center">
-          {!isSidebarOpen && (
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all group"
-            >
-              <ChevronRight size={18} className="group-hover:scale-110 transition-transform" />
-            </button>
-          )}
-          {isSidebarOpen && (
-            <button
-              onClick={() => setIsSidebarOpen(false)}
-              className="p-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all group"
-            >
-              <ChevronLeft size={18} className="group-hover:scale-110 transition-transform" />
-            </button>
-          )}
+        <div className="hidden md:flex items-center">
+          <button
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+            className="p-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all group"
+            title="Toggle Chat History"
+          >
+            {isHistoryOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+          </button>
         </div>
       </div>
 
@@ -58,8 +53,8 @@ export default function Header({
         </div>
       </div>
 
-      {/* RAG Mode Toggle in Header */}
-      <div className="flex items-center justify-end w-auto min-w-[52px]">
+      {/* Right Controls (RAG Mode & Engine Insights Toggle) */}
+      <div className="flex items-center justify-end gap-3">
         <button 
           onClick={() => setRagMode(ragMode === "general" ? "strict_local" : "general")}
           className={`text-[10px] uppercase tracking-widest font-bold flex items-center gap-2 px-4 py-2 rounded-xl transition-all border ${
@@ -73,6 +68,18 @@ export default function Header({
             {ragMode === "strict_local" ? "Notebook Mode: On" : "Notebook Mode: Off"}
           </span>
         </button>
+
+        <div className="hidden lg:flex items-center">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`p-2 backdrop-blur-xl border rounded-xl transition-all group ${
+              isSidebarOpen ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10'
+            }`}
+            title="Toggle Engine Insights"
+          >
+            {isSidebarOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
+          </button>
+        </div>
       </div>
     </header>
   );
