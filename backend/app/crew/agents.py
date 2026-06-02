@@ -32,7 +32,7 @@ async def _invoke_llm_with_retry(prompt: str, queue: asyncio.Queue = None) -> st
     if not api_key:
         return "Error: API key not found in environment."
 
-    model = "gemini/gemini-2.0-flash" if os.getenv("GOOGLE_API_KEY") else "sambanova/Meta-Llama-3.3-70B-Instruct"
+    model = "gemini/gemini-1.5-flash" if os.getenv("GOOGLE_API_KEY") else "sambanova/Meta-Llama-3.3-70B-Instruct"
 
     try:
         response = await litellm.acompletion(
