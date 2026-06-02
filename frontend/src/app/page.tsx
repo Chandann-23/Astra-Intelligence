@@ -65,11 +65,14 @@ export default function Home() {
         const firstUserMsg = messages.find(m => m.role === 'user');
         const chatTitle = firstUserMsg ? firstUserMsg.content.substring(0, 40) + (firstUserMsg.content.length > 40 ? '...' : '') : 'New Research';
         
-        await supabase.from('chats').upsert({
+        await supabase
+        .from('chats')
+        .upsert({
           id: currentChatId,
           title: chatTitle,
           messages: messages,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          user_id: userId
         }, { onConflict: 'id' });
       } catch (e) {
         console.error("Failed to save chat:", e);
@@ -78,7 +81,7 @@ export default function Home() {
 
     const timeoutId = setTimeout(saveChat, 1500);
     return () => clearTimeout(timeoutId);
-  }, [messages, currentChatId]);
+  }, [messages, currentChatId, userId]);
 
   const loadChat = async (chatId: string) => {
     try {
@@ -141,6 +144,18 @@ export default function Home() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isGraphVisible, setIsGraphVisible] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState<'logs' | 'strategy' | 'graph' | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Fetch current user on mount
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUserId(session.user.id);
+      }
+    };
+    getUser();
+  }, []);
   const [openContextId, setOpenContextId] = useState<string | null>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -233,11 +248,13 @@ export default function Home() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(userId && { "Authorization": `Bearer ${userId}` })
         },
         body: JSON.stringify({
           topic: currentTopic,
           history: messages.map(m => ({ role: m.role, content: m.content })),
-          rag_mode: ragMode
+          rag_mode: ragMode,
+          user_id: userId
         }),
       });
 

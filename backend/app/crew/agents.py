@@ -1,6 +1,7 @@
 import os
 import json
 import asyncio
+import re
 from typing import TypedDict, Annotated, Any
 from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, RetryError
@@ -9,6 +10,7 @@ from litellm.exceptions import RateLimitError
 import litellm
 from langgraph.graph import StateGraph, END
 from app.tools.graph_tool import neo4j_manager
+from app.tools.code_tool import execute_python_code
 
 load_dotenv()
 
@@ -20,6 +22,7 @@ class AgentState(TypedDict):
     storage_result: str
     queue: Any # asyncio.Queue
     rag_mode: str
+    execution_result: str
 
 @retry(
     stop=stop_after_attempt(3),
@@ -76,6 +79,7 @@ async def researcher_node(state: AgentState) -> AgentState:
         state["revision_count"] += 1
         
     rag_mode = state.get("rag_mode", "general")
+    execution_result = state.get("execution_result", "")
     
     if rag_mode == "strict_local":
         docs, reasoning = await neo4j_manager.document_vector_search(state.get('query', ''))
@@ -96,13 +100,20 @@ async def researcher_node(state: AgentState) -> AgentState:
             await state["queue"].put({"status": "researching", "message": f"Scanning local documents: {reasoning}", "node": "researcher"})
     else:
         prompt = f"""
-        You are a research analyst. Analyze the following query:
+        You are an advanced AI research analyst with code execution capabilities.
+        Analyze the following query:
         Query: {state.get('query', '')}
         Previous research: {state.get('research_output', '')}
         Previous critique: {state.get('critique', '')}
+        Code Execution Result: {execution_result}
         Revision count: {state['revision_count']}
         
-        Provide a detailed analysis with insights, data points, and conclusions.
+        If you need to perform calculations, data processing, or run python code to answer the query, output EXACTLY the following format:
+        ACTION: CODE_EXECUTE
+        ```python
+        <your python code here>
+        ```
+        If you do not need to run code, or if you already have the execution result you need, provide a detailed analysis with insights, data points, and conclusions.
         """
     
     response = await invoke_llm(prompt, state.get("queue"))
@@ -112,6 +123,25 @@ async def researcher_node(state: AgentState) -> AgentState:
         state["revision_count"] = 99 
     else:
         state["research_output"] = response
+        
+    return state
+
+async def coder_node(state: AgentState) -> AgentState:
+    """Extracts python code from researcher output and executes it."""
+    if state.get("queue"):
+        await state["queue"].put({"status": "executing", "message": "Executing Python code...", "node": "coder"})
+        
+    output = state.get("research_output", "")
+    code_match = re.search(r"```python\n(.*?)\n```", output, re.DOTALL)
+    
+    if code_match:
+        code = code_match.group(1)
+        result = execute_python_code(code)
+        state["execution_result"] = result
+        if state.get("queue"):
+            await state["queue"].put({"status": "executed", "message": f"Code Executed:\n{result}", "node": "coder"})
+    else:
+        state["execution_result"] = "Error: Could not extract valid python code block."
         
     return state
 
@@ -135,8 +165,8 @@ async def save_research_to_graph(state: AgentState) -> AgentState:
     research_content = state.get("research_output", "")
     query_topic = state.get("query", "General Research")
     
-    if not research_content or "Error:" in research_content:
-        state["storage_result"] = "Skipped: Research contained errors or was empty."
+    if not research_content or "Error:" in research_content or "ACTION: CODE_EXECUTE" in research_content:
+        state["storage_result"] = "Skipped: Research contained errors, was empty, or is still executing code."
         return state
 
     if not neo4j_manager.driver:
@@ -166,7 +196,13 @@ async def save_research_to_graph(state: AgentState) -> AgentState:
         
     return state
 
-def should_continue(state: AgentState) -> str:
+def should_continue_from_researcher(state: AgentState) -> str:
+    output = state.get("research_output", "")
+    if "ACTION: CODE_EXECUTE" in output:
+        return "coder"
+    return "critic"
+
+def should_continue_from_critic(state: AgentState) -> str:
     critique = state.get('critique', '')
     rev_count = state.get('revision_count', 0)
     
@@ -181,14 +217,20 @@ def should_continue(state: AgentState) -> str:
 
 workflow = StateGraph(AgentState)
 workflow.add_node("researcher", researcher_node)
+workflow.add_node("coder", coder_node)
 workflow.add_node("critic", critic_node)
 workflow.add_node("storage", save_research_to_graph)
 
 workflow.set_entry_point("researcher")
-workflow.add_edge("researcher", "critic")
+workflow.add_conditional_edges(
+    "researcher",
+    should_continue_from_researcher,
+    {"coder": "coder", "critic": "critic"}
+)
+workflow.add_edge("coder", "researcher")
 workflow.add_conditional_edges(
     "critic", 
-    should_continue, 
+    should_continue_from_critic, 
     {"researcher": "researcher", "storage": "storage", "END": END}
 )
 workflow.add_edge("storage", END)
