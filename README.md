@@ -1,13 +1,13 @@
 ---
-title: Astra Backend
-emoji: 🚀
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
+Title: Astra Backend
+Emoji: 🚀
+ColorFrom: blue
+ColorTo: indigo
+Sdk: docker
+App-Port: 7860
 # Add the line below to point to your backend folder
-dockerfile: backend/Dockerfile 
-pinned: false
+Dockerfile: backend/Dockerfile 
+Pinned: false
 ---
 # Astra Intelligence: Advanced Agentic Research Framework #
 *Astra Intelligence* is a high-performance, multi-agent research engine designed to bridge the gap between real-time web data and persistent knowledge graphs. Built as a second-year AIML project at Presidency University, it utilizes a sophisticated Neural-Symbolic approach to provide deep, verified insights into complex queries.

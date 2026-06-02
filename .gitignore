@@ -48,3 +48,6 @@ out/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Large media files (prevents GitHub 100MB push limit errors)
+docs/*.mp4
