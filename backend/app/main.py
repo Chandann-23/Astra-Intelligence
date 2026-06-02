@@ -28,6 +28,15 @@ class AnalysisRequest(BaseModel):
     topic: str
     history: list = []
 
+@app.get("/")
+def read_root():
+    """Root endpoint for Hugging Face Spaces iframe"""
+    return {
+        "app": "Astra Intelligence Engine V2",
+        "status": "operational",
+        "endpoints": ["/health", "/stream"]
+    }
+
 @app.get("/health")
 def health():
     """Health check reflecting V2 status"""
