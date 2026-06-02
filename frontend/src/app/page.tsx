@@ -752,8 +752,22 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Spacer for balance */}
-          <div className="flex items-center w-[52px]"></div>
+          {/* RAG Mode Toggle in Header */}
+          <div className="flex items-center justify-end w-auto min-w-[52px]">
+            <button 
+              onClick={() => setRagMode(ragMode === "general" ? "strict_local" : "general")}
+              className={`text-[10px] uppercase tracking-widest font-bold flex items-center gap-2 px-4 py-2 rounded-xl transition-all border ${
+                ragMode === "strict_local" 
+                  ? "bg-purple-500/20 text-purple-400 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.3)]" 
+                  : "bg-zinc-900/60 text-zinc-500 border-white/10 hover:text-zinc-300 hover:bg-zinc-800/80"
+              }`}
+            >
+              <BookOpen size={14} />
+              <span className="hidden md:inline">
+                {ragMode === "strict_local" ? "Notebook Mode: On" : "Notebook Mode: Off"}
+              </span>
+            </button>
+          </div>
         </header>
 
         {/* Messages Area */}
@@ -903,21 +917,6 @@ export default function Home() {
           <div className="max-w-4xl mx-auto relative group">
             <div className="absolute inset-0 bg-cyan-500/10 blur-2xl rounded-[32px] opacity-0 group-focus-within:opacity-100 transition-opacity duration-700" />
             
-            {/* RAG Mode Toggle */}
-            <div className="flex items-center gap-2 mb-2 ml-4">
-              <button 
-                onClick={() => setRagMode(ragMode === "general" ? "strict_local" : "general")}
-                className={`text-[10px] uppercase tracking-widest font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all border ${
-                  ragMode === "strict_local" 
-                    ? "bg-purple-500/20 text-purple-400 border-purple-500/50" 
-                    : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300"
-                }`}
-              >
-                <BookOpen size={12} />
-                {ragMode === "strict_local" ? "Notebook Mode: Active" : "Notebook Mode: Off"}
-              </button>
-            </div>
-
             <div className="relative flex items-center gap-4 bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-2 pl-6 rounded-[24px] focus-within:border-cyan-500/40 focus-within:bg-white/[0.05] transition-all duration-300 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
               <input
                 type="file"
@@ -976,10 +975,10 @@ export default function Home() {
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-zinc-900 border border-cyan-500/30 text-cyan-400 px-6 py-3 rounded-2xl shadow-2xl z-50 backdrop-blur-xl"
+            exit={{ opacity: 0, y: -50, scale: 0.9 }}
+            className="fixed top-8 right-8 bg-zinc-900 border border-cyan-500/30 text-cyan-400 px-6 py-3 rounded-2xl shadow-2xl z-50 backdrop-blur-xl"
           >
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
