@@ -63,7 +63,6 @@ export default function Home() {
     formData.append('file', file);
     
     try {
-      setToast(`Uploading ${file.name}...`);
       const response = await fetch(`${BACKEND_URL}/upload`, {
         method: 'POST',
         body: formData,
@@ -71,7 +70,6 @@ export default function Home() {
       
       const data = await response.json();
       if (response.ok) {
-        setToast(`Success: ${data.message}`);
         setRagMode("strict_local");
       } else {
         setToast(`Error: ${data.detail || 'Upload failed'}`);
