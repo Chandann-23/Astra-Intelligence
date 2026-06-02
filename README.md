@@ -39,7 +39,36 @@ Originally engineered as an advanced academic project at Presidency University, 
 
 Astra Intelligence coordinates asynchronous processes across web interfaces, AI gateways, persistent graph databases, and web search engines:
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Recruiter
+    participant FE as Next.js Dashboard
+    participant BE as FastAPI Backend
+    participant LG as LangGraph Engine
+    participant AG as LiteLLM Gateway
+    participant DB as Neo4j Database
+    participant SE as Tavily API
 
+    User->>FE: Submits complex research query
+    FE->>BE: Initiates POST /stream (SSE)
+    BE->>LG: Spawns Graph with initial query state
+    
+    Note over LG, AG: Researcher-Critic Stateful Loop
+    LG->>SE: Lead Researcher node fetches real-time sources
+    SE-->>LG: Real-time sources returned
+    LG->>AG: Call Llama-3.3-70B via SambaNova (GLM-5.1 alias)
+    AG-->>LG: Generates high-fidelity research report draft
+    LG->>AG: Senior Critic node reviews findings & provides critique
+    Note over LG: Loop if critique needs revisions (limit 5)
+
+    LG->>DB: Storage agent commits extracted entities (Cypher MERGE)
+    DB-->>LG: Transaction committed successfully
+    LG-->>BE: Streams state updates (researching -> critiquing -> storing)
+    BE-->>FE: Streamed Server-Sent Events (SSE) data chunks
+    FE->>FE: Render interactive 2D Force Graph & active node trace
+    FE-->>User: Beautiful knowledge graph & comprehensive report
+```
 
 ---
 
