@@ -33,14 +33,11 @@ import {
 
 const GraphView = dynamic(() => import('@/components/graph/GraphView'), { ssr: false });
 
-interface Message {
-  id: string;
-  role: 'user' | 'astra';
-  content: string;
-  type?: 'text' | 'analysis';
-  retrievedNodes?: string[];
-  isMemoryAccessed?: boolean;
-}
+import { Message } from '@/types';
+import Sidebar from '@/components/layout/Sidebar';
+import Header from '@/components/layout/Header';
+import ChatInput from '@/components/chat/ChatInput';
+import MessageList from '@/components/chat/MessageList';
 
 export default function Home() {
   const [topic, setTopic] = useState("");
@@ -515,57 +512,22 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Left Navigation Sidebar - Gemini Style */}
-      <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 md:relative md:translate-x-0 w-16 bg-zinc-900/60 backdrop-blur-xl border-r border-zinc-800/50 flex flex-col items-center py-4 space-y-4 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        {/* New Chat Button */}
-        <button 
-          onClick={() => {
-            setMessages([]);
-            setLogs([]);
-            setTopic("");
-            setLoading(false);
-            setIsWarmingUp(false);
-            setActiveAgent(null);
-          }}
-          className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center hover:bg-cyan-500/20 hover:border-cyan-500/40 transition-all group"
-          title="New Chat"
-        >
-          <Plus size={16} className="text-cyan-400 group-hover:scale-110 transition-transform" />
-        </button>
-
-        {/* Recent History Section */}
-        <div className="flex-1 flex flex-col items-center space-y-3 py-4">
-          <button 
-            onClick={() => showToast("Previous Research Sessions: Coming Soon")}
-            className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" 
-            title="Previous Research Sessions"
-          >
-            <MessageSquare size={14} className="text-zinc-400" />
-          </button>
-          <button 
-            onClick={() => showToast("Previous Research Sessions: Coming Soon")}
-            className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" 
-            title="Previous Research Sessions"
-          >
-            <MessageSquare size={14} className="text-zinc-400" />
-          </button>
-          <button 
-            onClick={() => showToast("Previous Research Sessions: Coming Soon")}
-            className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all cursor-pointer" 
-            title="Previous Research Sessions"
-          >
-            <MessageSquare size={14} className="text-zinc-400" />
-          </button>
-        </div>
-
-        {/* About Astra Button - Moved to Bottom */}
-        <button 
-          onClick={() => setIsAboutOpen(!isAboutOpen)}
-          className="w-10 h-10 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex items-center justify-center hover:bg-zinc-800/70 transition-all group"
-          title="About Astra"
-        >
-          <Info size={16} className="text-zinc-400 group-hover:text-cyan-400 transition-colors" />
-        </button>
-      </div>
+      {/* Left Navigation Sidebar - Gemini Style */}
+      <Sidebar 
+        isMobileNavOpen={isMobileNavOpen}
+        setIsMobileNavOpen={setIsMobileNavOpen}
+        resetChat={() => {
+          setMessages([]);
+          setLogs([]);
+          setTopic("");
+          setLoading(false);
+          setIsWarmingUp(false);
+          setActiveAgent(null);
+        }}
+        showToast={showToast}
+        isAboutOpen={isAboutOpen}
+        setIsAboutOpen={setIsAboutOpen}
+      />
 
       {/* Sidebar - Terminal Logs (25% width) */}
       <AnimatePresence initial={false}>
@@ -708,265 +670,35 @@ export default function Home() {
       {/* Main Chat Area (75% width) */}
       <div className={`flex-1 flex flex-col relative z-10 transition-all duration-500 w-full ${isSidebarOpen ? 'lg:w-[75%]' : ''}`}>
 
-        {/* Chat Header */}
-        <header 
-          className="p-4 md:p-6 border-b border-cyan-500/20 flex justify-between items-center bg-cyan-950/20 backdrop-blur-xl rounded-lg relative z-30"
-        >
-          {/* Sidebar Toggle - Anchored Left */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsMobileNavOpen(true)}
-              className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:border-cyan-500/50 transition-all md:hidden"
-            >
-              <Menu size={18} />
-            </button>
-            <div className="hidden lg:flex items-center">
-              {!isSidebarOpen && (
-                <button
-                  onClick={() => setIsSidebarOpen(true)}
-                  className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:border-cyan-500/50 transition-all group"
-                >
-                  <ChevronRight size={18} className="group-hover:scale-110 transition-transform" />
-                </button>
-              )}
-              {isSidebarOpen && (
-                <button
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="p-2 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-xl text-cyan-400 hover:text-white hover:border-cyan-500/50 transition-all group"
-                >
-                  <ChevronLeft size={18} className="group-hover:scale-110 transition-transform" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Astra Header - Centered using flex */}
-          <div className="flex-1 flex justify-center items-center text-center">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-                Astra Engine
-              </h1>
-              <p className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Multi-Agent Intelligence System</p>
-            </div>
-          </div>
-
-          {/* RAG Mode Toggle in Header */}
-          <div className="flex items-center justify-end w-auto min-w-[52px]">
-            <button 
-              onClick={() => setRagMode(ragMode === "general" ? "strict_local" : "general")}
-              className={`text-[10px] uppercase tracking-widest font-bold flex items-center gap-2 px-4 py-2 rounded-xl transition-all border ${
-                ragMode === "strict_local" 
-                  ? "bg-purple-500/20 text-purple-400 border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.3)]" 
-                  : "bg-zinc-900/60 text-zinc-500 border-white/10 hover:text-zinc-300 hover:bg-zinc-800/80"
-              }`}
-            >
-              <BookOpen size={14} />
-              <span className="hidden md:inline">
-                {ragMode === "strict_local" ? "Notebook Mode: On" : "Notebook Mode: Off"}
-              </span>
-            </button>
-          </div>
-        </header>
+        <Header 
+          isMobileNavOpen={isMobileNavOpen}
+          setIsMobileNavOpen={setIsMobileNavOpen}
+          isSidebarOpen={isSidebarOpen}
+          setIsSidebarOpen={setIsSidebarOpen}
+          ragMode={ragMode}
+          setRagMode={setRagMode}
+        />
 
         {/* Messages Area */}
-        <div 
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scroll-smooth bg-transparent relative"
-        >
-          <AnimatePresence>
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`max-w-[95%] md:max-w-[85%] flex gap-2 md:gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${
-                    msg.role === 'user' ? 'bg-zinc-900 border-zinc-700 text-zinc-400' : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-400'
-                  }`}>
-                    {msg.role === 'user' ? <User size={16} /> : <Bot size={16} />}
-                  </div>
-                  
-                  <div className={`space-y-2 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
-                      {msg.role === 'user' ? 'Operator' : 'Astra_Engine'}
-                      {msg.isMemoryAccessed && (
-                        <div className="flex items-center gap-1 group relative">
-                          <span className="flex items-center gap-1 text-purple-400 bg-purple-400/10 px-1.5 py-0.5 rounded border border-purple-400/20 lowercase animate-pulse">
-                            <Brain size={10} className="text-purple-300" /> neural_memory_active
-                          </span>
-                          <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-48 p-2 bg-zinc-900 border border-zinc-800 rounded text-[9px] text-zinc-300 normal-case shadow-2xl z-50">
-                            Information retrieved from Astra&apos;s persistent Knowledge Graph
-                          </div>
-                        </div>
-                      )}
-                      {msg.retrievedNodes && !msg.isMemoryAccessed && (
-                        <span className="flex items-center gap-1 text-purple-400 bg-purple-400/10 px-1.5 py-0.5 rounded border border-purple-400/20 lowercase">
-                          <Database size={10} /> memory_sourced
-                        </span>
-                      )}
-                    </div>
-                    {msg.type === 'analysis' ? (
-                      <div className="w-full space-y-4 max-w-full overflow-hidden">
-                        <AnalysisDisplay 
-                          result={msg.content}
-                          status="completed"
-                          currentNode="end"
-                          message="Analysis complete"
-                          onScroll={scrollToChatBottom}
-                        />
-                        
-                        {msg.retrievedNodes && (
-                          <div className="mt-2">
-                            <button 
-                              onClick={() => setOpenContextId(openContextId === msg.id ? null : msg.id)}
-                              className="text-[10px] text-zinc-500 hover:text-cyan-400 uppercase tracking-widest flex items-center gap-2 transition-colors mb-2"
-                            >
-                              {openContextId === msg.id ? <ChevronLeft size={12} className="rotate-90" /> : <ChevronRight size={12} />}
-                              Context_Window ({msg.retrievedNodes.length} nodes)
-                            </button>
-                            
-                            <AnimatePresence>
-                              {openContextId === msg.id && (
-                                <motion.div 
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: "auto", opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="bg-zinc-950 border border-zinc-900 rounded-xl p-4 flex flex-wrap gap-2">
-                                    {msg.retrievedNodes.map((node, i) => (
-                                      <span key={i} className="text-[10px] bg-zinc-900 border border-zinc-800 text-cyan-400/80 px-2 py-1 rounded-md">
-                                        {node}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div 
-                        className={`p-4 rounded-2xl text-sm leading-relaxed border backdrop-blur-md transition-all ${
-                          msg.role === 'user' 
-                            ? 'bg-zinc-900/40 border-zinc-800 text-zinc-200 rounded-tr-none' 
-                            : 'bg-cyan-950/20 border-cyan-500/20 text-cyan-50 rounded-tl-none shadow-[0_4px_20px_rgba(0,0,0,0.3)]'
-                        }`}
-                        style={{ 
-                          fontFamily: "'Inter', sans-serif"
-                        }}
-                      >
-                        {typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          
-          {/* Gemini-style 'Astra Pulse' Loader */}
-          <AnimatePresence>
-            {isWarmingUp && loading && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="flex justify-start"
-              >
-                <div className="max-w-[85%] flex gap-4">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 border bg-cyan-950/30 border-cyan-500/30 text-cyan-400">
-                    <Bot size={16} />
-                  </div>
-                  
-                  <div className="space-y-2 text-left">
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
-                      Astra_Engine
-                      <span className="flex items-center gap-1 text-cyan-400 bg-cyan-400/10 px-1.5 py-0.5 rounded border border-cyan-400/20 lowercase animate-pulse">
-                        <Activity size={10} className="text-cyan-300" /> thinking
-                      </span>
-                    </div>
-                    
-                    <div className="p-4 rounded-2xl text-sm leading-relaxed border backdrop-blur-md bg-cyan-950/20 border-cyan-500/20 text-cyan-50 rounded-tl-none shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-                      <div className="flex items-center gap-2">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                          <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                        </div>
-                        <span className="text-cyan-300 text-sm">Initializing research sequence...</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          <div ref={chatEndRef} />
-        </div>
+        <MessageList 
+          messages={messages}
+          isWarmingUp={isWarmingUp}
+          loading={loading}
+          scrollContainerRef={scrollContainerRef}
+          handleScroll={handleScroll}
+          chatEndRef={chatEndRef}
+          scrollToChatBottom={scrollToChatBottom}
+        />
 
         {/* Input Area */}
-        <div className="p-4 md:p-8 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent relative z-20 shrink-0">
-          <div className="max-w-4xl mx-auto relative group">
-            <div className="absolute inset-0 bg-cyan-500/10 blur-2xl rounded-[32px] opacity-0 group-focus-within:opacity-100 transition-opacity duration-700" />
-            
-            <div className="relative flex items-center gap-4 bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-2 pl-6 rounded-[24px] focus-within:border-cyan-500/40 focus-within:bg-white/[0.05] transition-all duration-300 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-                accept=".pdf,.txt,.md"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-                title="Upload Context Document"
-                className={`p-2 rounded-xl transition-all ${
-                  loading ? 'opacity-50 cursor-not-allowed text-zinc-600' : 'text-zinc-400 hover:text-cyan-400 hover:bg-white/5'
-                }`}
-              >
-                <Paperclip size={18} />
-              </button>
-              
-              <input
-                className="flex-1 bg-transparent border-none py-4 text-sm text-white placeholder-zinc-500 focus:outline-none font-medium"
-                placeholder="Initialize research sequence..."
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !loading && handleAnalyze()}
-              />
-              <button
-                onClick={handleAnalyze}
-                disabled={loading || !topic}
-                className={`px-6 py-3 rounded-[18px] transition-all flex items-center justify-center font-bold tracking-tighter uppercase text-xs border border-cyan-500/30 ${
-                  loading || !topic 
-                    ? 'bg-zinc-800/50 text-zinc-600 cursor-not-allowed' 
-                    : 'bg-[#0a0a0a] text-cyan-400 hover:bg-[#111] hover:scale-[1.02] active:scale-[0.98]'
-                }`}
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                ) : (
-                  <span className="flex items-center gap-2">Execute <Send size={14} /></span>
-                )}
-              </button>
-            </div>
-            
-                        
-            <div className="mt-4 flex justify-center gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-500 font-bold opacity-50">
-              <span className="flex items-center gap-2 hover:text-emerald-400 transition-colors"><div className="w-1 h-1 rounded-full bg-emerald-500" /> GLM-5.1_Model</span>
-              <span className="flex items-center gap-2 hover:text-cyan-400 transition-colors"><div className="w-1 h-1 rounded-full bg-cyan-500" /> Multi-Agent_Orchestration</span>
-              <span className="flex items-center gap-2 hover:text-amber-400 transition-colors"><div className="w-1 h-1 rounded-full bg-amber-500" /> RAG_Pipeline_Active</span>
-              <span className="flex items-center gap-2 hover:text-purple-400 transition-colors"><div className="w-1 h-1 rounded-full bg-purple-500" /> Latency: <span id="latency-metric">~300ms</span></span>
-            </div>
-          </div>
-        </div>
+        <ChatInput 
+          loading={loading}
+          topic={topic}
+          setTopic={setTopic}
+          handleAnalyze={handleAnalyze}
+          fileInputRef={fileInputRef}
+          handleFileUpload={handleFileUpload}
+        />
       </div>
 
       {/* Toast Notification */}
