@@ -33,8 +33,31 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
 
   const cleanedResult = cleanText(result);
 
-  // Determine what text to display
-  const textToDisplay = partialResult || cleanedResult;
+  // Determine what text to display (the target text)
+  const targetText = partialResult || cleanedResult;
+
+  // Decoupled typewriter state to smooth out ultra-fast backend streams
+  const [displayedLength, setDisplayedLength] = useState(0);
+
+  useEffect(() => {
+    if (!targetText) {
+      setDisplayedLength(0);
+      return;
+    }
+
+    if (displayedLength < targetText.length) {
+      const timeout = setTimeout(() => {
+        const backlog = targetText.length - displayedLength;
+        // Dynamic typing speed: Faster if there's a huge backlog, slower for small chunks
+        const speed = backlog > 1000 ? 15 : backlog > 500 ? 8 : backlog > 100 ? 4 : 2;
+        setDisplayedLength(prev => prev + Math.min(backlog, speed));
+      }, 15);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [targetText, displayedLength]);
+
+  const textToDisplay = targetText.slice(0, displayedLength);
 
   // Trigger auto-scroll on new text chunk arrivals
   useEffect(() => {
