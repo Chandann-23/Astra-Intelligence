@@ -3,7 +3,7 @@ import json
 import asyncio
 from typing import TypedDict, Annotated, Any
 from dotenv import load_dotenv
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, RetryError
 from litellm.exceptions import RateLimitError
 
 import litellm
@@ -26,7 +26,7 @@ class AgentState(TypedDict):
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type(RateLimitError)
 )
-async def invoke_llm(prompt: str, queue: asyncio.Queue = None) -> str:
+async def _invoke_llm_with_retry(prompt: str, queue: asyncio.Queue = None) -> str:
     """Invoke LLM through LiteLLM with async streaming and tenacity backoff"""
     api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("SAMBANOVA_API_KEY")
     if not api_key:
@@ -60,6 +60,14 @@ async def invoke_llm(prompt: str, queue: asyncio.Queue = None) -> str:
     except Exception as e:
         error_msg = str(e)
         return f"Error: {error_msg}"
+
+async def invoke_llm(prompt: str, queue: asyncio.Queue = None) -> str:
+    try:
+        return await _invoke_llm_with_retry(prompt, queue)
+    except RetryError:
+        return "Error: System is experiencing high traffic on the free tier API (Rate Limit Exceeded). Please wait a few seconds and try again."
+    except Exception as e:
+        return f"Error: {str(e)}"
 
 async def researcher_node(state: AgentState) -> AgentState:
     if state.get("revision_count") is None:
