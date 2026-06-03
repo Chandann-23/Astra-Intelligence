@@ -115,13 +115,26 @@ async def researcher_node(state: AgentState) -> AgentState:
     
     messages = [{"role": "system", "content": system_prompt}]
     
-    # Inject chat history
-    for msg in state.get("history", []):
+    # Inject chat history (Optimized for Token Limits)
+    raw_history = state.get("history", [])
+    
+    # 1. Keep only the last 6 messages (3 conversation turns) to prevent exploding context windows
+    recent_history = raw_history[-6:]
+    
+    for msg in recent_history:
         role = "assistant" if msg.get("role") == "astra" else "user"
+        content = msg.get("content", "")
+        
         # Skip the hardcoded initialization message to save tokens
-        if "System initialized" in msg.get("content", ""):
+        if "System initialized" in content:
             continue
-        messages.append({"role": role, "content": msg.get("content", "")})
+            
+        # 2. Truncate massively long previous AI responses to save tokens.
+        # We want the agent to remember the context, but we don't need to re-feed 4000 words.
+        if role == "assistant" and len(content) > 1500:
+            content = content[:1500] + "\n\n... [Previous response truncated by Memory Manager to save context window tokens]"
+            
+        messages.append({"role": role, "content": content})
         
     messages.append({"role": "user", "content": state.get("query", "")})
     
