@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, MessageSquare, Info, RefreshCw } from 'lucide-react';
+import { Plus, MessageSquare, Info, RefreshCw, User, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 interface SidebarProps {
   isMobileNavOpen: boolean;
@@ -25,6 +26,19 @@ export default function Sidebar({
 }: SidebarProps) {
   const [chats, setChats] = useState<{ id: string, title: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email || null);
+    });
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   const fetchChats = async () => {
     setLoading(true);
@@ -90,15 +104,33 @@ export default function Sidebar({
         ))}
       </div>
 
-      {/* About Astra Button */}
-      <div className="px-4 mt-auto pt-4 border-t border-white/5">
+      {/* Bottom Area: About & User Profile */}
+      <div className="px-4 mt-auto pt-4 border-t border-white/5 flex flex-col gap-2">
         <button 
           onClick={() => setIsAboutOpen(!isAboutOpen)}
-          className="w-full h-10 rounded-xl bg-transparent border border-white/5 flex items-center justify-center gap-2 hover:bg-white/5 transition-all group"
+          className="w-full h-10 rounded-xl bg-transparent border border-transparent flex items-center justify-start gap-3 hover:bg-white/5 transition-all group px-2"
         >
           <Info size={16} className="text-zinc-500 group-hover:text-zinc-300 transition-colors" />
           <span className="text-sm font-medium text-zinc-500 group-hover:text-zinc-300 transition-colors">About Astra</span>
         </button>
+
+        <div className="flex items-center justify-between w-full h-12 rounded-xl bg-zinc-900 border border-white/5 px-3 group hover:bg-white/10 transition-all cursor-default shadow-lg">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center shrink-0">
+              <User size={14} className="text-cyan-400" />
+            </div>
+            <span className="text-xs font-medium text-zinc-300 truncate" title={userEmail || ''}>
+              {userEmail || 'Loading...'}
+            </span>
+          </div>
+          <button 
+            onClick={handleSignOut} 
+            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" 
+            title="Sign Out"
+          >
+            <LogOut size={14} />
+          </button>
+        </div>
       </div>
     </div>
   );

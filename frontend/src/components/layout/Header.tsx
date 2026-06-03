@@ -1,7 +1,5 @@
 import React from 'react';
-import { Menu, ChevronRight, ChevronLeft, BookOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, LogOut } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { Menu, ChevronRight, ChevronLeft, BookOpen, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 
 interface HeaderProps {
   isMobileNavOpen: boolean;
@@ -24,12 +22,6 @@ export default function Header({
   ragMode,
   setRagMode
 }: HeaderProps) {
-  const router = useRouter();
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
   return (
     <header className="p-4 md:p-6 border-b border-white/5 flex justify-between items-center bg-zinc-950/40 backdrop-blur-2xl relative z-30 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
       {/* Left Sidebar Toggle (History) */}
@@ -86,14 +78,6 @@ export default function Header({
             title="Toggle Engine Insights"
           >
             {isSidebarOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
-          </button>
-          
-          <button
-            onClick={handleSignOut}
-            className="p-2 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all group"
-            title="Sign Out"
-          >
-            <LogOut size={18} />
           </button>
         </div>
       </div>
