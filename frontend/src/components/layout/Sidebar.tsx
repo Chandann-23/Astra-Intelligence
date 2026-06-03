@@ -71,7 +71,7 @@ export default function Sidebar({
   }, []);
 
   return (
-    <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 md:relative md:translate-x-0 w-[240px] bg-zinc-950 border-r border-white/5 flex flex-col py-4 space-y-4 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 md:relative md:translate-x-0 w-[240px] h-full bg-zinc-950 border-r border-white/5 flex flex-col py-4 space-y-4 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       {/* Header Area */}
       <div className="px-4 flex items-center justify-between">
         <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">History</span>
