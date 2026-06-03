@@ -41,6 +41,7 @@ class AnalysisRequest(BaseModel):
     rag_mode: str = "general"
     chat_id: str = None
     user_id: str = None
+    llm_provider: str = "gemini"
 
 @app.get("/")
 def read_root():
@@ -138,7 +139,8 @@ async def stream_analysis(request: AnalysisRequest):
             "revision_count": 0, 
             "storage_result": "",
             "queue": queue,
-            "rag_mode": request.rag_mode
+            "rag_mode": request.rag_mode,
+            "llm_provider": request.llm_provider
         }
         
         async def run_graph(q, state):

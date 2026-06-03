@@ -24,19 +24,24 @@ class AgentState(TypedDict):
     queue: Any # asyncio.Queue
     rag_mode: str
     execution_result: str
+    llm_provider: str
 
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type(RateLimitError)
 )
-async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None) -> str:
+async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None, provider: str = "gemini") -> str:
     """Invoke LLM through LiteLLM with async streaming and tenacity backoff"""
-    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("SAMBANOVA_API_KEY")
+    if provider == "sambanova":
+        api_key = os.getenv("SAMBANOVA_API_KEY")
+        model = "sambanova/Meta-Llama-3.3-70B-Instruct"
+    else:
+        api_key = os.getenv("GOOGLE_API_KEY")
+        model = "gemini/gemini-1.5-flash"
+        
     if not api_key:
-        return "Error: API key not found in environment."
-
-    model = "gemini/gemini-1.5-flash" if os.getenv("GOOGLE_API_KEY") else "sambanova/Meta-Llama-3.3-70B-Instruct"
+        return f"Error: API key for {provider} not found in environment."
 
     # Normalize prompt to messages list if a string is passed
     if isinstance(messages, str):
@@ -69,9 +74,9 @@ async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None) -> str:
         error_msg = str(e)
         return f"Error: {error_msg}"
 
-async def invoke_llm(messages, queue: asyncio.Queue = None) -> str:
+async def invoke_llm(messages, queue: asyncio.Queue = None, provider: str = "gemini") -> str:
     try:
-        return await _invoke_llm_with_retry(messages, queue)
+        return await _invoke_llm_with_retry(messages, queue, provider)
     except RetryError:
         return "Error: System is experiencing high traffic on the free tier API (Rate Limit Exceeded). Please wait a few seconds and try again."
     except Exception as e:
@@ -138,7 +143,7 @@ async def researcher_node(state: AgentState) -> AgentState:
         
     messages.append({"role": "user", "content": state.get("query", "")})
     
-    response = await invoke_llm(messages, state.get("queue"))
+    response = await invoke_llm(messages, state.get("queue"), state.get("llm_provider", "gemini"))
     
     if "Error:" in response:
         state["research_output"] = response
@@ -179,7 +184,7 @@ async def critic_node(state: AgentState) -> AgentState:
     Otherwise, provide feedback.
     """
     
-    response = await invoke_llm(prompt, state.get("queue"))
+    response = await invoke_llm(prompt, state.get("queue"), state.get("llm_provider", "gemini"))
     state["critique"] = response
     return state
 

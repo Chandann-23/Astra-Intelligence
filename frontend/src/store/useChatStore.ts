@@ -26,6 +26,7 @@ interface ChatState {
   isWarmingUp: boolean;
   activeAgent: string | null;
   ragMode: 'general' | 'strict_local';
+  llmProvider: 'gemini' | 'sambanova';
   
   // Layout State
   isSidebarOpen: boolean;
@@ -40,6 +41,7 @@ interface ChatState {
   setIsWarmingUp: (warmingUp: boolean) => void;
   setActiveAgent: (agent: string | null) => void;
   setRagMode: (mode: 'general' | 'strict_local') => void;
+  setLlmProvider: (provider: 'gemini' | 'sambanova') => void;
   addMessage: (message: Message) => void;
   setMessages: (updater: Message[] | ((prev: Message[]) => Message[])) => void;
   updateLastAstraMessage: (content: string, retrievedNodes?: string[], isMemoryAccessed?: boolean) => void;
@@ -71,6 +73,7 @@ export const useChatStore = create<ChatState>((set) => ({
   isWarmingUp: false,
   activeAgent: null,
   ragMode: 'general',
+  llmProvider: 'gemini',
   
   isSidebarOpen: true,
   isHistoryOpen: true,
@@ -83,6 +86,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setIsWarmingUp: (isWarmingUp) => set({ isWarmingUp }),
   setActiveAgent: (activeAgent) => set({ activeAgent }),
   setRagMode: (ragMode) => set({ ragMode }),
+  setLlmProvider: (llmProvider) => set({ llmProvider }),
   
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   setMessages: (updater) => set((state) => ({ 

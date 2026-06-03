@@ -54,6 +54,7 @@ export default function Home() {
     isWarmingUp, setIsWarmingUp,
     activeAgent, setActiveAgent,
     ragMode, setRagMode,
+    llmProvider,
     isSidebarOpen, setIsSidebarOpen,
     isHistoryOpen, setIsHistoryOpen,
     isMobileNavOpen, setIsMobileNavOpen,
@@ -224,7 +225,8 @@ export default function Home() {
           topic: currentTopic,
           history: messages.map(m => ({ role: m.role, content: m.content })),
           rag_mode: ragMode,
-          user_id: userId
+          user_id: userId,
+          llm_provider: llmProvider
         }),
       });
 

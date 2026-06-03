@@ -1,5 +1,6 @@
 import React from 'react';
 import { Paperclip, Send } from 'lucide-react';
+import { useChatStore } from '@/store/useChatStore';
 
 interface ChatInputProps {
   loading: boolean;
@@ -18,6 +19,8 @@ export default function ChatInput({
   fileInputRef,
   handleFileUpload
 }: ChatInputProps) {
+  const { llmProvider, setLlmProvider } = useChatStore();
+
   return (
     <div className="p-4 md:p-8 bg-gradient-to-t from-black via-black/80 to-transparent relative z-20 shrink-0">
       <div className="max-w-4xl mx-auto relative group">
@@ -66,8 +69,21 @@ export default function ChatInput({
           </button>
         </div>
         
-        <div className="mt-4 flex justify-center gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-600 font-bold opacity-60">
-          <span className="flex items-center gap-2 hover:text-emerald-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-emerald-500" /> GLM-5.1_Model</span>
+        <div className="mt-4 flex justify-center gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-600 font-bold opacity-60 items-center">
+          <div className="relative group/dropdown">
+            <select
+              value={llmProvider}
+              onChange={(e) => setLlmProvider(e.target.value as 'gemini' | 'sambanova')}
+              className="appearance-none bg-transparent border-none text-zinc-600 hover:text-emerald-400 font-bold uppercase tracking-[0.25em] cursor-pointer focus:outline-none focus:ring-0 pl-4 pr-6 py-1"
+            >
+              <option value="gemini" className="bg-zinc-900">Gemini 1.5 Flash</option>
+              <option value="sambanova" className="bg-zinc-900">SambaNova Llama 3.3</option>
+            </select>
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-emerald-500 pointer-events-none" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-600 group-hover/dropdown:text-emerald-400">
+              ▼
+            </div>
+          </div>
           <span className="flex items-center gap-2 hover:text-cyan-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-cyan-500" /> Multi-Agent_Orchestration</span>
           <span className="flex items-center gap-2 hover:text-amber-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-amber-500" /> RAG_Pipeline_Active</span>
           <span className="flex items-center gap-2 hover:text-purple-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-purple-500" /> Latency: <span id="latency-metric">~300ms</span></span>
