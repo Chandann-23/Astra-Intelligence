@@ -41,17 +41,34 @@ import MessageList from '@/components/chat/MessageList';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 
+import { useChatStore } from '@/store/useChatStore';
+
 export default function Home() {
-  const [topic, setTopic] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', role: 'astra', content: "System initialized. How can I assist with your research today?" }
-  ]);
-  const [loading, setLoading] = useState(false);
-  const [activeAgent, setActiveAgent] = useState<string | null>(null);
-  const [isWarmingUp, setIsWarmingUp] = useState(false);
-  const [ragMode, setRagMode] = useState<"general" | "strict_local">("general");
-  const [currentChatId, setCurrentChatId] = useState<string>("");
-  const [userId, setUserId] = useState<string | null>(null);
+  const {
+    userId, setUserId,
+    currentChatId, loadChat,
+    messages, setMessages,
+    topic, setTopic,
+    logs, setLogs,
+    loading, setLoading,
+    isWarmingUp, setIsWarmingUp,
+    activeAgent, setActiveAgent,
+    ragMode, setRagMode,
+    isSidebarOpen, setIsSidebarOpen,
+    isHistoryOpen, setIsHistoryOpen,
+    isMobileNavOpen, setIsMobileNavOpen,
+    isGraphVisible, setIsGraphVisible,
+    expandedPanel, setExpandedPanel,
+    updateLastAstraMessage,
+    addMessage,
+    addLog,
+    resetChat
+  } = useChatStore();
+
+  const [toast, setToast] = useState<string | null>(null);
+  const [openContextId, setOpenContextId] = useState<string | null>(null);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Fetch current user on mount
   useEffect(() => {
@@ -62,61 +79,23 @@ export default function Home() {
       }
     };
     getUser();
-  }, []);
+  }, [setUserId]);
 
-  useEffect(() => {
-    setCurrentChatId(uuidv4());
-  }, []);
-
-  // Auto-save chat history to Supabase
-  useEffect(() => {
-    if (!currentChatId || messages.length <= 1) return;
-    
-    const saveChat = async () => {
-      try {
-        const firstUserMsg = messages.find(m => m.role === 'user');
-        const chatTitle = firstUserMsg ? firstUserMsg.content.substring(0, 40) + (firstUserMsg.content.length > 40 ? '...' : '') : 'New Research';
-        
-        await supabase
-        .from('chats')
-        .upsert({
-          id: currentChatId,
-          title: chatTitle,
-          messages: messages,
-          updated_at: new Date().toISOString(),
-          user_id: userId
-        }, { onConflict: 'id' });
-      } catch (e) {
-        console.error("Failed to save chat:", e);
-      }
-    };
-
-    const timeoutId = setTimeout(saveChat, 1500);
-    return () => clearTimeout(timeoutId);
-  }, [messages, currentChatId, userId]);
-
-  const loadChat = async (chatId: string) => {
+  const loadChatFromDb = async (chatId: string) => {
     try {
       const { data, error } = await supabase
-        .from('chats')
+        .from('messages')
         .select('*')
-        .eq('id', chatId)
-        .single();
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true });
         
       if (error) throw error;
       if (data) {
-        setCurrentChatId(data.id);
-        setMessages(data.messages);
-        setTopic("");
-        setLogs([]);
-        setLoading(false);
-        setIsWarmingUp(false);
-        setActiveAgent(null);
-        if (isMobileNavOpen) setIsMobileNavOpen(false);
+        loadChat(chatId, data);
       }
     } catch (err) {
       console.error("Failed to load chat", err);
-      showToast("Failed to load chat history");
+      setToast("Failed to load chat history");
     }
   };
 
@@ -139,6 +118,7 @@ export default function Home() {
       const data = await response.json();
       if (response.ok) {
         setRagMode("strict_local");
+        setToast("Knowledge base updated. Astra will now prioritize local notes.");
       } else {
         setToast(`Error: ${data.detail || 'Upload failed'}`);
       }
@@ -150,16 +130,6 @@ export default function Home() {
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
-  const [logs, setLogs] = useState<string[]>([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [isGraphVisible, setIsGraphVisible] = useState(false);
-  const [expandedPanel, setExpandedPanel] = useState<'logs' | 'strategy' | 'graph' | null>(null);
-  const [openContextId, setOpenContextId] = useState<string | null>(null);
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const strategyEndRef = useRef<HTMLDivElement>(null);
@@ -233,7 +203,7 @@ export default function Home() {
     
     isAutoScrollPausedRef.current = false; // Reset scroll hold for new query
     const userMessage: Message = { id: Date.now().toString(), role: 'user', content: topic };
-    setMessages(prev => [...prev, userMessage]);
+    addMessage(userMessage);
     const currentTopic = topic;
     setTopic("");
     setLoading(true);
@@ -241,7 +211,7 @@ export default function Home() {
     
     let currentRetrievedNodes: string[] = [];
     let memoryAccessed = false;
-    setLogs(prev => [...prev, `[USER]: Start analysis for "${currentTopic}"`]);
+    addLog(`[USER]: Start analysis for "${currentTopic}"`);
     
     try {
       const response = await fetch(`${BACKEND_URL}/stream`, {
@@ -282,7 +252,7 @@ export default function Home() {
               if (data.status === 'completed' && data.result && data.result.trim() !== '') {
                 setIsWarmingUp(false);
               }
-              setLogs(prev => [...prev, `[${data.node?.toUpperCase() || 'SYSTEM'}]: ${data.message}`]);
+              addLog(`[${data.node?.toUpperCase() || 'SYSTEM'}]: ${data.message}`);
               
               // Update active agent based on node
               if (data.node === 'researcher') setActiveAgent("Researcher");
@@ -292,33 +262,30 @@ export default function Home() {
               
               // Handle completion
               if (data.status === 'completed' && data.result) {
-                setMessages(prev => {
-                  const lastMessage = prev[prev.length - 1];
-                  if (lastMessage && lastMessage.role === 'astra' && lastMessage.type === 'analysis') {
-                    return [...prev.slice(0, -1), { ...lastMessage, content: data.result, retrievedNodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined, isMemoryAccessed: memoryAccessed }];
-                  }
-                  return [...prev, { id: (Date.now() + 1).toString(), role: 'astra', content: data.result, type: 'analysis', retrievedNodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined, isMemoryAccessed: memoryAccessed }];
-                });
+                updateLastAstraMessage(
+                  data.result, 
+                  currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined, 
+                  memoryAccessed
+                );
                 setActiveAgent(null);
-                setLogs(prev => [...prev, "[SYSTEM]: Analysis sequence complete."]);
+                addLog("[SYSTEM]: Analysis sequence complete.");
                 setLoading(false);
               }
               
               // Handle errors
               if (data.status === 'error') {
-                setLogs(prev => [...prev, `[ERROR]: ${data.message}`]);
-                const errorMessage: Message = { 
+                addLog(`[ERROR]: ${data.message}`);
+                addMessage({ 
                   id: (Date.now() + 1).toString(), 
                   role: 'astra', 
                   content: `Error: ${data.message}` 
-                };
-                setMessages(prev => [...prev, errorMessage]);
+                });
                 setLoading(false);
               }
             }
             // Handle partial results during streaming
             else if (data.partial_result) {
-              setMessages(prev => {
+              setMessages((prev: Message[]) => {
                 const lastMessage = prev[prev.length - 1];
                 if (lastMessage && lastMessage.role === 'astra' && lastMessage.type === 'analysis') {
                   // Append the token to the existing stream
@@ -338,7 +305,7 @@ export default function Home() {
             // Legacy support for old format
             else if (data.type === 'log') {
               const content = data.content;
-              setLogs(prev => [...prev, content]);
+              addLog(content);
               
               // Extract nodes from retrieval logs
               if (content.includes("Existing Knowledge Found")) {
@@ -358,33 +325,31 @@ export default function Home() {
               else if (content.includes("Critic")) setActiveAgent("Critic");
               else if (content.includes("Final Answer")) setActiveAgent(null);
             } else if (data.type === 'result') {
-              const astraMessage: Message = { 
+              addMessage({ 
                 id: (Date.now() + 1).toString(), 
                 role: 'astra', 
                 content: data.content,
                 type: 'analysis',
                 retrievedNodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined,
                 isMemoryAccessed: memoryAccessed
-              };
-              setMessages(prev => [...prev, astraMessage]);
+              });
               setActiveAgent(null);
-              setLogs(prev => [...prev, "[SYSTEM]: Analysis sequence complete. Compiling report..."]);
+              addLog("[SYSTEM]: Analysis sequence complete. Compiling report...");
               setLoading(false);
             } else if (data.type === 'error') {
-              setLogs(prev => [...prev, `[ERROR]: ${data.content}`]);
-              const errorMessage: Message = { 
+              addLog(`[ERROR]: ${data.content}`);
+              addMessage({ 
                 id: (Date.now() + 1).toString(), 
                 role: 'astra', 
                 content: `Error: ${data.content}` 
-              };
-              setMessages(prev => [...prev, errorMessage]);
+              });
               setLoading(false);
             }
           }
         }
       }
     } catch (error) {
-      setLogs(prev => [...prev, `[ERROR]: Connection failed`]);
+      addLog(`[ERROR]: Connection failed`);
       setLoading(false);
     }
   };
@@ -421,7 +386,7 @@ export default function Home() {
       setLogs(prev => [...prev, `[SYSTEM]: ${data.message}`]);
       setShowClearConfirm(false);
     } catch (error) {
-      setLogs(prev => [...prev, "[ERROR]: Clear request failed"]);
+      addLog("[ERROR]: Clear request failed");
     }
   };
 
@@ -600,18 +565,10 @@ export default function Home() {
               <Sidebar 
                 isMobileNavOpen={false}
                 setIsMobileNavOpen={setIsMobileNavOpen}
-                resetChat={() => {
-                  setMessages([{ id: '1', role: 'astra', content: "System initialized. How can I assist with your research today?" }]);
-                  setCurrentChatId(uuidv4());
-                  setLogs([]);
-                  setTopic("");
-                  setLoading(false);
-                  setIsWarmingUp(false);
-                  setActiveAgent(null);
-                }}
-                loadChat={loadChat}
+                resetChat={resetChat}
+                loadChat={loadChatFromDb}
                 currentChatId={currentChatId}
-                showToast={showToast}
+                showToast={setToast}
                 isAboutOpen={isAboutOpen}
                 setIsAboutOpen={setIsAboutOpen}
               />
@@ -625,18 +582,10 @@ export default function Home() {
         <Sidebar 
           isMobileNavOpen={isMobileNavOpen}
           setIsMobileNavOpen={setIsMobileNavOpen}
-          resetChat={() => {
-            setMessages([{ id: '1', role: 'astra', content: "System initialized. How can I assist with your research today?" }]);
-            setCurrentChatId(uuidv4());
-            setLogs([]);
-            setTopic("");
-            setLoading(false);
-            setIsWarmingUp(false);
-            setActiveAgent(null);
-          }}
-          loadChat={loadChat}
+          resetChat={resetChat}
+          loadChat={loadChatFromDb}
           currentChatId={currentChatId}
-          showToast={showToast}
+          showToast={setToast}
           isAboutOpen={isAboutOpen}
           setIsAboutOpen={setIsAboutOpen}
         />

@@ -7,10 +7,21 @@ from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from supabase import create_client, Client
 
 # Load environment variables
 load_dotenv()
 print('🚀 ASTRA ENGINE STARTING IN PRODUCTION MODE (V2)...')
+
+# Initialize Supabase client
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL") or os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY")
+supabase_client: Client | None = None
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    print('✅ Supabase Client Initialized')
+else:
+    print('⚠️ Supabase credentials missing. Database persistence disabled.')
 
 # Optimized import to prevent "Warming Up" phase delays
 from app.crew.agents import app_graph
@@ -28,6 +39,8 @@ class AnalysisRequest(BaseModel):
     topic: str
     history: list = []
     rag_mode: str = "general"
+    chat_id: str = None
+    user_id: str = None
 
 @app.get("/")
 def read_root():
@@ -85,7 +98,36 @@ async def upload_file(file: UploadFile = File(...)):
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest):
-    print(f'DEBUG: Request for: {request.topic} | RAG Mode: {request.rag_mode}')
+    print(f'DEBUG: Request for: {request.topic} | RAG Mode: {request.rag_mode} | Chat ID: {request.chat_id}')
+    
+    # 1. Asynchronously persist the User message
+    if supabase_client and request.chat_id and request.user_id:
+        try:
+            # Upsert chat metadata
+            chat_title = request.topic[:40] + ('...' if len(request.topic) > 40 else '') if not request.history else None
+            
+            # Note: For Supabase realtime to work best, we check if title exists (new chat)
+            if chat_title:
+                supabase_client.table("chats").upsert({
+                    "id": request.chat_id,
+                    "title": chat_title,
+                    "user_id": request.user_id,
+                }).execute()
+            else:
+                supabase_client.table("chats").update({
+                    "id": request.chat_id # Dummy update just to touch the table, usually updated_at auto-triggers
+                }).eq("id", request.chat_id).execute()
+                
+            # Insert User Message
+            supabase_client.table("messages").insert({
+                "chat_id": request.chat_id,
+                "role": "user",
+                "content": request.topic,
+                "type": "text"
+            }).execute()
+        except Exception as e:
+            print(f"Database sync error (user msg): {e}")
+
     try:
         queue = asyncio.Queue()
         initial_state = {
@@ -142,6 +184,19 @@ async def stream_analysis(request: AnalysisRequest):
                     "storage_result": last_seen_state.get("storage_result", ""),
                     "node": "end"
                 }
+                
+                # 2. Asynchronously persist the Astra message
+                if supabase_client and request.chat_id:
+                    try:
+                        supabase_client.table("messages").insert({
+                            "chat_id": request.chat_id,
+                            "role": "astra",
+                            "content": last_seen_state.get("research_output", ""),
+                            "type": "analysis"
+                        }).execute()
+                    except Exception as e:
+                        print(f"Database sync error (astra msg): {e}")
+                        
                 await q.put(final_response)
             except Exception as graph_error:
                 await q.put({'status': 'error', 'message': str(graph_error), 'node': 'end'})

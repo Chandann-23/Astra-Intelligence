@@ -21,3 +21,4 @@ torch
 tenacity
 python-multipart
 pypdf
+supabase

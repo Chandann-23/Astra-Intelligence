@@ -1,12 +1,9 @@
-import tempfile
 import subprocess
 import os
 
 def execute_python_code(code: str) -> str:
     """
-    Executes Python code in a local subprocess and returns stdout and stderr.
-    WARNING: This is a basic implementation for local/Hugging Face environments.
-    In a true production environment, use E2B or Docker for secure sandboxing.
+    Executes Python code in a secure, isolated Docker container.
     """
     # Remove markdown formatting if present
     if code.startswith("```python"):
@@ -17,14 +14,18 @@ def execute_python_code(code: str) -> str:
         code = code[:-3]
         
     code = code.strip()
-
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-        f.write(code)
-        temp_path = f.name
         
     try:
-        # Run with a timeout of 15 seconds to prevent infinite loops
-        result = subprocess.run(['python', temp_path], capture_output=True, text=True, timeout=15)
+        # Run in a secure docker container via stdin
+        docker_cmd = [
+            'docker', 'run', '--rm', '-i',
+            '--memory=512m', '--cpus=1', 
+            '--network=none', 
+            'python:3.9-slim', 
+            'python', '-'
+        ]
+        
+        result = subprocess.run(docker_cmd, input=code, capture_output=True, text=True, timeout=15)
         
         output = ""
         if result.stdout:
@@ -37,9 +38,6 @@ def execute_python_code(code: str) -> str:
             
         return output
     except subprocess.TimeoutExpired:
-        return "Error: Execution timed out after 15 seconds."
+        return "Error: Execution timed out after 15 seconds. Ensure there are no infinite loops."
     except Exception as e:
         return f"Error executing code: {str(e)}"
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
