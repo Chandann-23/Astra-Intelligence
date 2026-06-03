@@ -90,6 +90,7 @@ async def stream_analysis(request: AnalysisRequest):
         queue = asyncio.Queue()
         initial_state = {
             "query": request.topic, 
+            "history": request.history,
             "research_output": "", 
             "critique": "", 
             "revision_count": 0, 

@@ -16,6 +16,7 @@ load_dotenv()
 
 class AgentState(TypedDict):
     query: str
+    history: list
     research_output: str
     critique: str
     revision_count: int
@@ -29,7 +30,7 @@ class AgentState(TypedDict):
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type(RateLimitError)
 )
-async def _invoke_llm_with_retry(prompt: str, queue: asyncio.Queue = None) -> str:
+async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None) -> str:
     """Invoke LLM through LiteLLM with async streaming and tenacity backoff"""
     api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("SAMBANOVA_API_KEY")
     if not api_key:
@@ -37,10 +38,14 @@ async def _invoke_llm_with_retry(prompt: str, queue: asyncio.Queue = None) -> st
 
     model = "gemini/gemini-1.5-flash" if os.getenv("GOOGLE_API_KEY") else "sambanova/Meta-Llama-3.3-70B-Instruct"
 
+    # Normalize prompt to messages list if a string is passed
+    if isinstance(messages, str):
+        messages = [{"role": "user", "content": messages}]
+
     try:
         response = await litellm.acompletion(
             model=model,
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
             temperature=0.7,
             max_tokens=4096,
             api_key=api_key,
@@ -64,9 +69,9 @@ async def _invoke_llm_with_retry(prompt: str, queue: asyncio.Queue = None) -> st
         error_msg = str(e)
         return f"Error: {error_msg}"
 
-async def invoke_llm(prompt: str, queue: asyncio.Queue = None) -> str:
+async def invoke_llm(messages, queue: asyncio.Queue = None) -> str:
     try:
-        return await _invoke_llm_with_retry(prompt, queue)
+        return await _invoke_llm_with_retry(messages, queue)
     except RetryError:
         return "Error: System is experiencing high traffic on the free tier API (Rate Limit Exceeded). Please wait a few seconds and try again."
     except Exception as e:
@@ -85,38 +90,42 @@ async def researcher_node(state: AgentState) -> AgentState:
         docs, reasoning = await neo4j_manager.document_vector_search(state.get('query', ''))
         context = "\n".join(docs)
         
-        prompt = f"""
+        system_prompt = f"""
         You are a STRICT Local RAG assistant (NotebookLM mode). You must answer the user's query ONLY using the provided Context Notes below.
         DO NOT use any outside internet knowledge. If the answer is not contained in the Context Notes, say exactly: "I cannot find the answer in the provided notes."
         
         Context Notes:
         {context}
-        
-        Query: {state.get('query', '')}
-        Previous research: {state.get('research_output', '')}
-        Previous critique: {state.get('critique', '')}
         """
         if state.get("queue"):
             await state["queue"].put({"status": "researching", "message": f"Scanning local documents: {reasoning}", "node": "researcher"})
     else:
-        prompt = f"""
+        system_prompt = f"""
         You are an advanced AI research analyst with code execution capabilities.
-        Analyze the following query:
-        Query: {state.get('query', '')}
-        Previous research: {state.get('research_output', '')}
-        Previous critique: {state.get('critique', '')}
-        Code Execution Result: {execution_result}
-        Revision count: {state['revision_count']}
-        
         If you need to perform calculations, data processing, or run python code to answer the query, output EXACTLY the following format:
         ACTION: CODE_EXECUTE
         ```python
         <your python code here>
         ```
         If you do not need to run code, or if you already have the execution result you need, provide a detailed analysis with insights, data points, and conclusions.
+        
+        Code Execution Result: {execution_result}
+        Revision count: {state['revision_count']}
         """
     
-    response = await invoke_llm(prompt, state.get("queue"))
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    # Inject chat history
+    for msg in state.get("history", []):
+        role = "assistant" if msg.get("role") == "astra" else "user"
+        # Skip the hardcoded initialization message to save tokens
+        if "System initialized" in msg.get("content", ""):
+            continue
+        messages.append({"role": role, "content": msg.get("content", "")})
+        
+    messages.append({"role": "user", "content": state.get("query", "")})
+    
+    response = await invoke_llm(messages, state.get("queue"))
     
     if "Error:" in response:
         state["research_output"] = response
