@@ -51,6 +51,18 @@ export default function Home() {
   const [isWarmingUp, setIsWarmingUp] = useState(false);
   const [ragMode, setRagMode] = useState<"general" | "strict_local">("general");
   const [currentChatId, setCurrentChatId] = useState<string>("");
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Fetch current user on mount
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUserId(session.user.id);
+      }
+    };
+    getUser();
+  }, []);
 
   useEffect(() => {
     setCurrentChatId(uuidv4());
@@ -144,18 +156,6 @@ export default function Home() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isGraphVisible, setIsGraphVisible] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState<'logs' | 'strategy' | 'graph' | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  // Fetch current user on mount
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUserId(session.user.id);
-      }
-    };
-    getUser();
-  }, []);
   const [openContextId, setOpenContextId] = useState<string | null>(null);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
