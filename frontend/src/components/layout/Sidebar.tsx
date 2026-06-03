@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, MessageSquare, Info, RefreshCw, User, LogOut, Settings, Sparkles, SlidersHorizontal, HelpCircle } from 'lucide-react';
+import { Plus, MessageSquare, Info, RefreshCw, User, LogOut } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -119,22 +119,16 @@ export default function Sidebar({
               onClick={() => setIsProfileMenuOpen(false)}
             />
             <div className="absolute bottom-full left-2 w-[calc(100%-16px)] mb-2 bg-[#2f2f2f] border border-white/5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.5)] p-1.5 flex flex-col z-50">
-              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
-                <Sparkles size={16} /> Upgrade plan
-              </button>
-              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
-                <SlidersHorizontal size={16} /> Personalization
-              </button>
-              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
-                <User size={16} /> Profile
-              </button>
-              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
-                <Settings size={16} /> Settings
+              <button 
+                onClick={() => {
+                  setIsAboutOpen(true);
+                  setIsProfileMenuOpen(false);
+                }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left"
+              >
+                <Info size={16} /> About Astra
               </button>
               <div className="h-px bg-white/10 my-1 mx-2"></div>
-              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
-                <HelpCircle size={16} /> Help
-              </button>
               <button 
                 onClick={handleSignOut}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left"
