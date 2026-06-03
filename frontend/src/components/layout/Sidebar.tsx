@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, MessageSquare, Info, RefreshCw, User, LogOut } from 'lucide-react';
+import { Plus, MessageSquare, Info, RefreshCw, User, LogOut, Settings, Sparkles, SlidersHorizontal, HelpCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -27,11 +27,17 @@ export default function Sidebar({
   const [chats, setChats] = useState<{ id: string, title: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setUserEmail(data.user?.email || null);
+      const email = data.user?.email || null;
+      setUserEmail(email);
+      setUserName(data.user?.user_metadata?.full_name || email?.split('@')[0] || 'User');
+      setUserAvatar(data.user?.user_metadata?.avatar_url || data.user?.user_metadata?.picture || null);
     });
   }, []);
 
@@ -104,33 +110,59 @@ export default function Sidebar({
         ))}
       </div>
 
-      {/* Bottom Area: About & User Profile */}
-      <div className="px-4 mt-auto pt-4 border-t border-white/5 flex flex-col gap-2">
-        <button 
-          onClick={() => setIsAboutOpen(!isAboutOpen)}
-          className="w-full h-10 rounded-xl bg-transparent border border-transparent flex items-center justify-start gap-3 hover:bg-white/5 transition-all group px-2"
-        >
-          <Info size={16} className="text-zinc-500 group-hover:text-zinc-300 transition-colors" />
-          <span className="text-sm font-medium text-zinc-500 group-hover:text-zinc-300 transition-colors">About Astra</span>
-        </button>
-
-        <div className="flex items-center justify-between w-full h-12 rounded-xl bg-zinc-900 border border-white/5 px-3 group hover:bg-white/10 transition-all cursor-default shadow-lg">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-7 h-7 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center shrink-0">
-              <User size={14} className="text-cyan-400" />
+      {/* Bottom Area: ChatGPT Style User Profile Dropdown */}
+      <div className="px-2 mt-auto pt-4 pb-2 relative">
+        {isProfileMenuOpen && (
+          <>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setIsProfileMenuOpen(false)}
+            />
+            <div className="absolute bottom-full left-2 w-[calc(100%-16px)] mb-2 bg-[#2f2f2f] border border-white/5 rounded-xl shadow-[0_4px_24px_rgba(0,0,0,0.5)] p-1.5 flex flex-col z-50">
+              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
+                <Sparkles size={16} /> Upgrade plan
+              </button>
+              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
+                <SlidersHorizontal size={16} /> Personalization
+              </button>
+              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
+                <User size={16} /> Profile
+              </button>
+              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
+                <Settings size={16} /> Settings
+              </button>
+              <div className="h-px bg-white/10 my-1 mx-2"></div>
+              <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left">
+                <HelpCircle size={16} /> Help
+              </button>
+              <button 
+                onClick={handleSignOut}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/10 text-[14px] text-zinc-200 transition-colors w-full text-left"
+              >
+                <LogOut size={16} /> Log out
+              </button>
             </div>
-            <span className="text-xs font-medium text-zinc-300 truncate" title={userEmail || ''}>
-              {userEmail || 'Loading...'}
-            </span>
+          </>
+        )}
+
+        <button 
+          onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+          className={`flex items-center justify-between w-full h-[52px] rounded-xl px-2 transition-all ${isProfileMenuOpen ? 'bg-white/10' : 'bg-transparent hover:bg-white/5'}`}
+        >
+          <div className="flex items-center gap-2 overflow-hidden">
+            {userAvatar ? (
+              <img src={userAvatar} alt="Profile" className="w-8 h-8 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 font-semibold text-sm">
+                {userName?.charAt(0).toUpperCase() || 'U'}
+              </div>
+            )}
+            <div className="flex flex-col items-start truncate">
+              <span className="text-[14px] font-medium text-zinc-200 truncate w-36 text-left">{userName || 'Loading...'}</span>
+              <span className="text-[12px] text-zinc-500">Free</span>
+            </div>
           </div>
-          <button 
-            onClick={handleSignOut} 
-            className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" 
-            title="Sign Out"
-          >
-            <LogOut size={14} />
-          </button>
-        </div>
+        </button>
       </div>
     </div>
   );
