@@ -35,7 +35,7 @@ export default function ChatInput({
   }, []);
 
   const models = [
-    { id: 'gemini', label: 'Gemini 1.5 Flash', iconColor: 'bg-emerald-500' },
+    { id: 'gemini', label: 'Gemini 2.0 Flash', iconColor: 'bg-emerald-500' },
     { id: 'sambanova', label: 'SambaNova Llama 3.3', iconColor: 'bg-blue-500' },
   ];
   

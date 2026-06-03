@@ -38,7 +38,7 @@ async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None, provider
         model = "sambanova/Meta-Llama-3.3-70B-Instruct"
     else:
         api_key = os.getenv("GOOGLE_API_KEY")
-        model = "gemini/gemini-1.5-flash"
+        model = "gemini/gemini-2.0-flash"
         
     if not api_key:
         return f"Error: API key for {provider} not found in environment."
