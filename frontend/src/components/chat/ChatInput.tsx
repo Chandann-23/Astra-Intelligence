@@ -64,40 +64,15 @@ export default function ChatInput({
           >
             <Paperclip size={18} />
           </button>
-          
-          <input
-            className="flex-1 bg-transparent border-none py-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none font-medium selection:bg-emerald-500/30"
-            placeholder="Initialize research sequence..."
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !loading && handleAnalyze()}
-          />
-          <button
-            onClick={handleAnalyze}
-            disabled={loading || !topic}
-            className={`px-6 py-3 rounded-[18px] transition-all flex items-center justify-center font-bold tracking-tighter uppercase text-xs border border-white/5 ${
-              loading || !topic 
-                ? 'bg-black/20 text-zinc-700 cursor-not-allowed' 
-                : 'bg-zinc-900 text-zinc-300 hover:text-emerald-400 hover:bg-black hover:border-emerald-500/30 hover:scale-[1.02] active:scale-[0.98]'
-            }`}
-          >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-            ) : (
-              <span className="flex items-center gap-2">Execute <Send size={14} /></span>
-            )}
-          </button>
-        </div>
-        
-        <div className="mt-4 flex justify-center gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-600 font-bold opacity-60 items-center">
-          <div className="relative" ref={dropdownRef}>
+
+          <div className="relative border-r border-white/10 pr-4 mr-2" ref={dropdownRef}>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 hover:text-zinc-300 transition-colors"
+              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-500 hover:text-zinc-300 transition-colors whitespace-nowrap"
             >
-              <div className={`w-1 h-1 rounded-full ${currentModel.iconColor}`} /> 
+              <div className={`w-1.5 h-1.5 rounded-full ${currentModel.iconColor}`} /> 
               {currentModel.label}
-              {isDropdownOpen ? <ChevronDown size={10} className="ml-1 opacity-50" /> : <ChevronUp size={10} className="ml-1 opacity-50" />}
+              {isDropdownOpen ? <ChevronDown size={12} className="ml-1 opacity-50" /> : <ChevronUp size={12} className="ml-1 opacity-50" />}
             </button>
 
             <AnimatePresence>
@@ -131,6 +106,32 @@ export default function ChatInput({
               )}
             </AnimatePresence>
           </div>
+          
+          <input
+            className="flex-1 bg-transparent border-none py-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none font-medium selection:bg-emerald-500/30"
+            placeholder="Initialize research sequence..."
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !loading && handleAnalyze()}
+          />
+          <button
+            onClick={handleAnalyze}
+            disabled={loading || !topic}
+            className={`px-6 py-3 rounded-[18px] transition-all flex items-center justify-center font-bold tracking-tighter uppercase text-xs border border-white/5 ${
+              loading || !topic 
+                ? 'bg-black/20 text-zinc-700 cursor-not-allowed' 
+                : 'bg-zinc-900 text-zinc-300 hover:text-emerald-400 hover:bg-black hover:border-emerald-500/30 hover:scale-[1.02] active:scale-[0.98]'
+            }`}
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+            ) : (
+              <span className="flex items-center gap-2">Execute <Send size={14} /></span>
+            )}
+          </button>
+        </div>
+        
+        <div className="mt-4 flex justify-center gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-600 font-bold opacity-60 items-center">
           <span className="flex items-center gap-2 hover:text-cyan-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-cyan-500" /> Multi-Agent_Orchestration</span>
           <span className="flex items-center gap-2 hover:text-amber-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-amber-500" /> RAG_Pipeline_Active</span>
           <span className="flex items-center gap-2 hover:text-purple-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-purple-500" /> Latency: <span id="latency-metric">~300ms</span></span>
