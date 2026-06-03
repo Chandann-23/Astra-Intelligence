@@ -84,7 +84,7 @@ export default function LoginPage() {
               }
             }}
             theme="dark"
-            providers={[]} // Add 'google', 'github' here if configured in Supabase
+            providers={['google']} 
           />
         </div>
       </div>
