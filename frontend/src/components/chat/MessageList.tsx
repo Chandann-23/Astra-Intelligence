@@ -29,7 +29,7 @@ export default function MessageList({
     <div 
       ref={scrollContainerRef}
       onScroll={handleScroll}
-      className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar scroll-smooth bg-transparent relative"
+      className="flex-1 overflow-y-auto p-3 md:p-6 space-y-4 md:space-y-8 custom-scrollbar scroll-smooth bg-transparent relative"
     >
       <AnimatePresence>
         {messages.map((msg, i) => (
@@ -135,7 +135,7 @@ export default function MessageList({
             exit={{ opacity: 0, y: -10 }}
             className="flex justify-start"
           >
-            <div className="max-w-[85%] flex gap-4">
+            <div className="max-w-[95%] flex gap-4">
               <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 border bg-emerald-950/20 border-emerald-500/20 text-emerald-400">
                 <Bot size={16} />
               </div>

@@ -25,7 +25,7 @@ export default function Header({
   return (
     <header className="p-4 md:p-6 border-b border-white/5 flex justify-between items-center bg-zinc-950/40 backdrop-blur-2xl relative z-30 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
       {/* Left Sidebar Toggle (History) */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={() => setIsMobileNavOpen(true)}
           className="p-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all md:hidden"
@@ -44,17 +44,17 @@ export default function Header({
       </div>
 
       {/* Astra Header - Centered using flex */}
-      <div className="flex-1 flex justify-center items-center text-center">
+      <div className="flex-1 flex justify-center items-center text-center min-w-0">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-500 tracking-tight">
+          <h1 className="text-lg md:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-500 tracking-tight">
             Astra Engine
           </h1>
-          <p className="text-[10px] text-zinc-500 uppercase tracking-[0.3em] mt-1 font-bold">Multi-Agent Intelligence</p>
+          <p className="hidden sm:block text-[10px] text-zinc-500 uppercase tracking-[0.3em] mt-1 font-bold">Multi-Agent Intelligence</p>
         </div>
       </div>
 
       {/* Right Controls (RAG Mode & Engine Insights Toggle) */}
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-end gap-2 md:gap-3 shrink-0">
         <button 
           onClick={() => setRagMode(ragMode === "general" ? "strict_local" : "general")}
           className={`text-[10px] uppercase tracking-widest font-bold flex items-center gap-2 px-4 py-2 rounded-xl transition-all border ${

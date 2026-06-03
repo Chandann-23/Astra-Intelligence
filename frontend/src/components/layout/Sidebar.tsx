@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, MessageSquare, Info, RefreshCw, User, LogOut } from 'lucide-react';
+import { Plus, MessageSquare, Info, RefreshCw, User, LogOut, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -71,13 +71,22 @@ export default function Sidebar({
   }, []);
 
   return (
-    <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 md:relative md:translate-x-0 w-[240px] h-full bg-zinc-950 border-r border-white/5 flex flex-col py-4 space-y-4 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 md:relative md:translate-x-0 w-[240px] h-full bg-zinc-950 border-r border-white/5 flex flex-col py-4 space-y-4 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
       {/* Header Area */}
       <div className="px-4 flex items-center justify-between">
         <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">History</span>
-        <button onClick={fetchChats} className={`p-1 text-zinc-500 hover:text-white transition-all ${loading ? 'animate-spin' : ''}`}>
-          <RefreshCw size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={fetchChats} className={`p-1 text-zinc-500 hover:text-white transition-all ${loading ? 'animate-spin' : ''}`}>
+            <RefreshCw size={14} />
+          </button>
+          {/* Close button — only visible on mobile */}
+          <button
+            onClick={() => setIsMobileNavOpen(false)}
+            className="md:hidden p-1 text-zinc-500 hover:text-white transition-all"
+          >
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
       {/* New Chat Button */}
@@ -97,7 +106,10 @@ export default function Sidebar({
         {chats.map(chat => (
           <button 
             key={chat.id}
-            onClick={() => loadChat(chat.id)}
+            onClick={() => {
+              loadChat(chat.id);
+              setIsMobileNavOpen(false); // Auto-close on mobile after selecting chat
+            }}
             className={`w-full px-3 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer group text-left ${
               currentChatId === chat.id ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-transparent border-transparent hover:bg-white/5'
             } border`} 

@@ -393,7 +393,7 @@ export default function Home() {
   };
 
   return (
-    <main className="flex h-screen bg-[#050505] text-zinc-100 selection:bg-cyan-500/30 overflow-hidden relative">
+    <main className="flex h-[100dvh] bg-[#050505] text-zinc-100 selection:bg-cyan-500/30 overflow-hidden relative">
       {/* About Modal */}
       <AnimatePresence>
         {isAboutOpen && (

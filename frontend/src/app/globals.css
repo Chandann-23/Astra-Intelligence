@@ -20,6 +20,14 @@
   }
 }
 
+html, body {
+  height: 100%;
+  /* Prevent horizontal overflow on mobile */
+  overflow-x: hidden;
+  /* iOS momentum scrolling */
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -27,6 +35,8 @@ body {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent pull-to-refresh on mobile browsers causing layout shifts */
+  overscroll-behavior: none;
 }
 
 /* Custom scrollbar styling for dark theme */
@@ -46,4 +56,12 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.5);
+}
+
+/* Hide scrollbar on touch/mobile devices but keep functionality */
+@media (max-width: 768px) {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 0;
+    display: none;
+  }
 }

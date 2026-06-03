@@ -65,14 +65,14 @@ export default function ChatInput({
             <Paperclip size={18} />
           </button>
 
-          <div className="relative border-r border-white/10 pr-4 mr-2" ref={dropdownRef}>
+          <div className="relative border-r border-white/10 pr-4 mr-2 shrink-0" ref={dropdownRef}>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-500 hover:text-zinc-300 transition-colors whitespace-nowrap"
             >
-              <div className={`w-1.5 h-1.5 rounded-full ${currentModel.iconColor}`} /> 
-              {currentModel.label}
-              {isDropdownOpen ? <ChevronDown size={12} className="ml-1 opacity-50" /> : <ChevronUp size={12} className="ml-1 opacity-50" />}
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentModel.iconColor}`} /> 
+              <span className="truncate max-w-[72px] sm:max-w-none">{currentModel.label}</span>
+              {isDropdownOpen ? <ChevronDown size={12} className="ml-1 opacity-50 shrink-0" /> : <ChevronUp size={12} className="ml-1 opacity-50 shrink-0" />}
             </button>
 
             <AnimatePresence>
@@ -131,7 +131,7 @@ export default function ChatInput({
           </button>
         </div>
         
-        <div className="mt-4 flex justify-center gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-600 font-bold opacity-60 items-center">
+        <div className="hidden sm:flex mt-4 justify-center gap-4 md:gap-8 text-[9px] uppercase tracking-[0.25em] text-zinc-600 font-bold opacity-60 items-center">
           <span className="flex items-center gap-2 hover:text-cyan-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-cyan-500" /> Multi-Agent_Orchestration</span>
           <span className="flex items-center gap-2 hover:text-amber-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-amber-500" /> RAG_Pipeline_Active</span>
           <span className="flex items-center gap-2 hover:text-purple-400 transition-colors cursor-default"><div className="w-1 h-1 rounded-full bg-purple-500" /> Latency: <span id="latency-metric">~300ms</span></span>
