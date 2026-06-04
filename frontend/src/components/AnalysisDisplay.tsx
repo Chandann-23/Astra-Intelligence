@@ -126,17 +126,17 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({
               components={{
                 h1: ({node, children, ...props}) => (
                   <h1 className="text-[1.5rem] font-[600] text-cyan-400 mt-10 mb-8 tracking-tight" {...props}>
-                    {String(children).replace(/#+/g, '').trim()}
+                    {children}
                   </h1>
                 ),
                 h2: ({node, children, ...props}) => (
                   <h2 className="text-[1.5rem] font-[600] text-cyan-400 mt-8 mb-6 tracking-tight" {...props}>
-                    {String(children).replace(/#+/g, '').trim()}
+                    {children}
                   </h2>
                 ),
                 h3: ({node, children, ...props}) => (
                   <h3 className="text-xl font-[600] text-cyan-400 mt-6 mb-4 tracking-tight" {...props}>
-                    {String(children).replace(/#+/g, '').trim()}
+                    {children}
                   </h3>
                 ),
                 p: ({node, ...props}) => <p className="text-white mb-5 leading-[1.7] opacity-100 font-[400]" {...props} />,

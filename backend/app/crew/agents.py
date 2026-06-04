@@ -243,7 +243,7 @@ async def critic_node(state: AgentState) -> AgentState:
     Otherwise, provide feedback.
     """
     
-    response = await invoke_llm(prompt, state.get("queue"), state.get("llm_provider", "gemini"))
+    response = await invoke_llm(prompt, None, state.get("llm_provider", "gemini"))
     state["critique"] = response
     return state
 
