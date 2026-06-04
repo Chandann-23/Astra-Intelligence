@@ -167,15 +167,20 @@ async def researcher_node(state: AgentState) -> AgentState:
             await state["queue"].put({"status": "researching", "message": f"Scanning local documents: {reasoning}", "node": "researcher"})
     else:
         system_prompt = f"""
-        You are an advanced AI research analyst with code execution capabilities.
-        If you need to perform calculations, data processing, or run python code to answer the query, output EXACTLY the following format:
+        You are an advanced AI research analyst with web search and code execution capabilities.
+        
+        - If you need to search the live web for real-time 2026 data or external facts, output EXACTLY this format:
+        ACTION: WEB_SEARCH
+        query = "<your search query here>"
+        
+        - If you need to run calculations or execute python code, output EXACTLY this format:
         ACTION: CODE_EXECUTE
         ```python
         <your python code here>
         ```
-        If you do not need to run code, or if you already have the execution result you need, provide a detailed analysis with insights, data points, and conclusions.
+        - Otherwise, provide your detailed analysis.
         
-        Code Execution Result: {execution_result}
+        Code/Search Execution Result: {execution_result}
         Revision count: {state['revision_count']}
         """
     
@@ -233,6 +238,36 @@ async def coder_node(state: AgentState) -> AgentState:
         
     return state
 
+async def searcher_node(state: AgentState) -> AgentState:
+    """Performs web search using Tavily search tool."""
+    if state.get("queue"):
+        await state["queue"].put({"status": "searching", "message": "Searching the web...", "node": "searcher"})
+        
+    output = state.get("research_output", "")
+    query_match = re.search(r'ACTION:\s*WEB_SEARCH\s*\n\s*query\s*=\s*["\'](.*?)["\']', output, re.IGNORECASE | re.DOTALL)
+    
+    # Fallback regex if formatting differs slightly
+    if not query_match:
+        query_match = re.search(r'ACTION:\s*WEB_SEARCH\s*\n\s*query\s*=\s*(.*)', output, re.IGNORECASE)
+        
+    if query_match:
+        from app.tools.search_tool import tavily_search
+        query = query_match.group(1).strip()
+        if (query.startswith('"') and query.endswith('"')) or (query.startswith("'") and query.endswith("'")):
+            query = query[1:-1].strip()
+            
+        try:
+            result = tavily_search._run(query)
+            state["execution_result"] = result
+            if state.get("queue"):
+                await state["queue"].put({"status": "searched", "message": f"Search Completed: '{query}'", "node": "searcher"})
+        except Exception as e:
+            state["execution_result"] = f"Web Search Error: {str(e)}"
+    else:
+        state["execution_result"] = "Error: Could not extract valid web search query."
+        
+    return state
+
 async def critic_node(state: AgentState) -> AgentState:
     if "Error:" in state.get("research_output", ""):
         return state
@@ -278,9 +313,66 @@ async def save_research_to_graph(state: AgentState) -> AgentState:
             "topic": query_topic,
             "content": research_content
         })
-        state["storage_result"] = "Success: Wrote to Neo4j Async"
+        storage_status = "Success: Saved parent node."
     except Exception as e:
         state["storage_result"] = f"Storage error: {str(e)}"
+        return state
+
+    # Dynamically extract and save rich concept relationships (Semantic Graph RAG)
+    try:
+        extraction_prompt = f"""
+        Analyze the following research report and extract up to 5 core concept relationships.
+        Output them strictly as a JSON array of objects with keys "source", "relationship", and "target".
+        - "source" and "target" should be clean nouns/entities (max 3 words, e.g. "Neural Networks", "Llama 3").
+        - "relationship" should be a single uppercase word with underscores (e.g. "BUILT_ON", "DEVELOPED_BY", "COMPETING_WITH").
+        
+        Example output:
+        [
+          {{"source": "Transformer", "relationship": "INVENTED_BY", "target": "Google"}},
+          {{"source": "PyTorch", "relationship": "USED_FOR", "target": "Deep Learning"}}
+        ]
+        
+        Report to analyze:
+        {research_content[:3000]}
+        
+        Respond ONLY with the raw JSON array. Do not include markdown code block styling or any explanation.
+        """
+        
+        extraction_response = await invoke_llm(extraction_prompt, None, state.get("llm_provider", "gemini"))
+        
+        cleaned_json = extraction_response.strip()
+        if cleaned_json.startswith("```json"):
+            cleaned_json = cleaned_json[7:]
+        elif cleaned_json.startswith("```"):
+            cleaned_json = cleaned_json[3:]
+        if cleaned_json.endswith("```"):
+            cleaned_json = cleaned_json[:-3]
+        cleaned_json = cleaned_json.strip()
+        
+        relationships = json.loads(cleaned_json)
+        
+        saved_rels = []
+        if isinstance(relationships, list):
+            for rel in relationships:
+                src = rel.get("source")
+                relationship_type = rel.get("relationship")
+                tgt = rel.get("target")
+                if src and relationship_type and tgt:
+                    await neo4j_manager.upsert_relationship(
+                        source_node=src,
+                        relationship=relationship_type,
+                        target_node=tgt,
+                        properties={"source_agent": "Astra_Extractor", "topic": query_topic}
+                    )
+                    saved_rels.append(f"({src})-[:{relationship_type}]->({tgt})")
+            
+            state["storage_result"] = f"Success: Saved concept summary & mapped {len(saved_rels)} semantic relationships: {', '.join(saved_rels)}"
+        else:
+            state["storage_result"] = "Success: Saved concept summary."
+            
+    except Exception as e:
+        print(f"Graph RAG Semantic Extraction failed: {e}")
+        state["storage_result"] = f"Success: Saved concept summary (relations extraction skipped: {str(e)})"
         
     return state
 
@@ -288,6 +380,8 @@ def should_continue_from_researcher(state: AgentState) -> str:
     output = state.get("research_output", "")
     if "ACTION: CODE_EXECUTE" in output:
         return "coder"
+    if "ACTION: WEB_SEARCH" in output:
+        return "searcher"
     return "critic"
 
 def should_continue_from_critic(state: AgentState) -> str:
@@ -306,6 +400,7 @@ def should_continue_from_critic(state: AgentState) -> str:
 workflow = StateGraph(AgentState)
 workflow.add_node("researcher", researcher_node)
 workflow.add_node("coder", coder_node)
+workflow.add_node("searcher", searcher_node)
 workflow.add_node("critic", critic_node)
 workflow.add_node("storage", save_research_to_graph)
 
@@ -313,9 +408,10 @@ workflow.set_entry_point("researcher")
 workflow.add_conditional_edges(
     "researcher",
     should_continue_from_researcher,
-    {"coder": "coder", "critic": "critic"}
+    {"coder": "coder", "searcher": "searcher", "critic": "critic"}
 )
 workflow.add_edge("coder", "researcher")
+workflow.add_edge("searcher", "researcher")
 workflow.add_conditional_edges(
     "critic", 
     should_continue_from_critic, 

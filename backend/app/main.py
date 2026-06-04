@@ -158,6 +158,18 @@ async def stream_analysis(request: AnalysisRequest):
                                 "node": "researcher",
                                 "trace": "Researcher analyzing query and generating comprehensive research report."
                             },
+                            "searcher": {
+                                "status": "searching",
+                                "message": "Search Agent querying live web...",
+                                "node": "searcher",
+                                "trace": "Search Agent executing Tavily web queries to pull live data."
+                            },
+                            "coder": {
+                                "status": "executing",
+                                "message": "Python Coder executing code block...",
+                                "node": "coder",
+                                "trace": "Coder Agent running Python code inside secure sandbox."
+                            },
                             "critic": {
                                 "status": "critiquing", 
                                 "message": "Senior Critic reviewing findings...", 
