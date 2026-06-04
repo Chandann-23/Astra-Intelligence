@@ -26,7 +26,7 @@ interface ChatState {
   isWarmingUp: boolean;
   activeAgent: string | null;
   ragMode: 'general' | 'strict_local';
-  llmProvider: 'gemini' | 'sambanova';
+  llmProvider: 'gemini' | 'sambanova' | 'groq' | 'cerebras';
   
   // Layout State
   isSidebarOpen: boolean;
@@ -41,7 +41,7 @@ interface ChatState {
   setIsWarmingUp: (warmingUp: boolean) => void;
   setActiveAgent: (agent: string | null) => void;
   setRagMode: (mode: 'general' | 'strict_local') => void;
-  setLlmProvider: (provider: 'gemini' | 'sambanova') => void;
+  setLlmProvider: (provider: 'gemini' | 'sambanova' | 'groq' | 'cerebras') => void;
   addMessage: (message: Message) => void;
   setMessages: (updater: Message[] | ((prev: Message[]) => Message[])) => void;
   updateLastAstraMessage: (content: string, retrievedNodes?: string[], isMemoryAccessed?: boolean) => void;

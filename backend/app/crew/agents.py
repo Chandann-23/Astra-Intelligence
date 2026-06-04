@@ -36,7 +36,13 @@ async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None, provider
     if provider == "sambanova":
         api_key = os.getenv("SAMBANOVA_API_KEY")
         model = "sambanova/Meta-Llama-3.3-70B-Instruct"
-    else:
+    elif provider == "groq":
+        api_key = os.getenv("GROQ_API_KEY")
+        model = "groq/llama-3.3-70b-versatile"
+    elif provider == "cerebras":
+        api_key = os.getenv("CEREBRAS_API_KEY")
+        model = "cerebras/llama3.3-70b"
+    else:  # default: gemini
         api_key = os.getenv("GOOGLE_API_KEY")
         model = "gemini/gemini-2.0-flash"
         
