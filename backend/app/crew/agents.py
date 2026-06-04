@@ -54,7 +54,7 @@ async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None, provider
         api_key = os.getenv("MISTRAL_API_KEY")
         model = "mistral/mistral-small-latest"  # Best free tier: 1B tokens/month, 60 RPM, no credit card
     else:  # default: gemini
-        api_key = os.getenv("GEMINI_API_KEY")  # LiteLLM requires GEMINI_API_KEY (not GOOGLE_API_KEY) for gemini/ prefix
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")  # Fallback to GOOGLE_API_KEY if GEMINI_API_KEY is not set
         model = "gemini/gemini-2.0-flash"      # gemini/ prefix routes via AI Studio (simple API key)
         
     if not api_key:
