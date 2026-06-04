@@ -42,6 +42,7 @@ class AnalysisRequest(BaseModel):
     chat_id: str = None
     user_id: str = None
     llm_provider: str = "gemini"
+    developer_resume_mode: bool = False
 
 @app.get("/")
 def read_root():
@@ -140,7 +141,8 @@ async def stream_analysis(request: AnalysisRequest):
             "storage_result": "",
             "queue": queue,
             "rag_mode": request.rag_mode,
-            "llm_provider": request.llm_provider
+            "llm_provider": request.llm_provider,
+            "developer_resume_mode": request.developer_resume_mode
         }
         
         async def run_graph(q, state):

@@ -14,6 +14,37 @@ from app.tools.code_tool import execute_python_code
 
 load_dotenv()
 
+DEVELOPER_RESUME_CONTEXT = """
+DEVELOPER PROFILE: CHANDAN (Senior AI & Full-Stack Software Engineer)
+=====================================================================
+
+OVERVIEW:
+Chandan is a highly skilled Senior Software Engineer with deep expertise in AI agent orchestration, Large Language Models (LLMs), Graph RAG (Retrieval-Augmented Generation), and premium full-stack web applications. With a strong engineering background, Chandan focuses on building secure, resilient, SRE-compliant, and high-performance intelligent agent systems.
+
+CORE TECHNICAL SKILLS:
+* Languages: Python, TypeScript, JavaScript, SQL, HTML, CSS
+* AI & Agents: LangGraph, LangChain, CrewAI, LiteLLM, OpenAI, Google Gemini API, Claude, Mistral AI, Hugging Face
+* Database & RAG: Neo4j (Graph Database & Vector Indexing), PostgreSQL, Supabase (Vector Search, RLS, Auth, Database Functions)
+* Frontend: Next.js (App Router), React 18/19, Zustand, Framer Motion, Tailwind CSS, Lucide React
+* Infrastructure & SRE: Docker (isolated sandboxing), GitHub Actions (CI/CD), Tenacity (resilience retry patterns), Server-Sent Events (SSE) streaming
+
+FEATURED PROJECTS:
+1. Astra Intelligence V2 (This Application):
+   * An advanced AI research engine with multi-agent orchestration (Lead Researcher, Coder, Critic, Storage Extractor).
+   * Implemented a self-healing LLM router with automatic provider fallback handling (failsafe API failovers) to recover from rate-limiting (429 errors).
+   * Developed a secure Python runtime execution sandbox utilizing Docker with local subprocess fallbacks for serverless environments.
+   * Integrated Graph RAG linking semantic concepts using custom sentence-transformer embeddings saved to Neo4j.
+2. Secure Agent Workspace:
+   * A NotebookLM-style private workspace allowing users to securely index, search, and chat with their PDF/TXT knowledge base using Supabase vector embeddings.
+3. High-Performance APIs:
+   * Optimized token context windows by truncating history, saving up to 80% on token consumption while maintaining agent memory coherence.
+
+WHY HIRE CHANDAN:
+* AI Specialist: Expert in building actual functional multi-agent flows (not just single wrappers) using LangGraph state machines.
+* Full-Stack Competence: Capable of building backend API architectures and immediately translating them into premium, glassmorphic UI web applications.
+* Production Mindset: Prioritizes SRE standards—handling rate limits, backup fallbacks, memory constraints, and code sandboxing natively.
+"""
+
 class AgentState(TypedDict):
     query: str
     history: list
@@ -25,6 +56,7 @@ class AgentState(TypedDict):
     rag_mode: str
     execution_result: str
     llm_provider: str
+    developer_resume_mode: bool
 
 @retry(
     stop=stop_after_attempt(3),
@@ -152,7 +184,19 @@ async def researcher_node(state: AgentState) -> AgentState:
     rag_mode = state.get("rag_mode", "general")
     execution_result = state.get("execution_result", "")
     
-    if rag_mode == "strict_local":
+    if state.get("developer_resume_mode"):
+        system_prompt = f"""
+        You are a dedicated Recruiter Onboarding Agent for Chandan (the creator of Astra).
+        Your mission is to answer questions about Chandan's background, projects, skills, and why he is a great hire.
+        You must answer ONLY using the Developer Profile Context provided below.
+        Be professional, persuasive, and directly highlight his technical expertise.
+        
+        Developer Profile Context:
+        {DEVELOPER_RESUME_CONTEXT}
+        """
+        if state.get("queue"):
+            await state["queue"].put({"status": "researching", "message": "Accessing Developer Profile Index...", "node": "researcher"})
+    elif rag_mode == "strict_local":
         docs, reasoning = await neo4j_manager.document_vector_search(state.get('query', ''))
         context = "\n".join(docs)
         
@@ -270,6 +314,10 @@ async def searcher_node(state: AgentState) -> AgentState:
 
 async def critic_node(state: AgentState) -> AgentState:
     if "Error:" in state.get("research_output", ""):
+        return state
+
+    if state.get("developer_resume_mode"):
+        state["critique"] = "APPROVED"
         return state
 
     prompt = f"""

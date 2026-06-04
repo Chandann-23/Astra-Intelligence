@@ -82,8 +82,8 @@ const GraphView: React.FC = () => {
     }
   };
 
-  const handleNodeClick = useCallback((node: { x?: number, y?: number, name?: string, id?: string }) => {
-    if (fgRef.current) {
+  const handleNodeClick = useCallback((node: any) => {
+    if (fgRef.current && node && typeof node.x === 'number' && typeof node.y === 'number') {
       // Center and zoom into the clicked node
       fgRef.current.centerAt(node.x, node.y, 1000);
       fgRef.current.zoom(2, 1000);
@@ -154,7 +154,7 @@ const GraphView: React.FC = () => {
         linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
         linkCurvature={0.25}
-        onNodeClick={handleNodeClick as unknown as (node: { x?: number, y?: number, name?: string, id?: string }) => void}
+        onNodeClick={handleNodeClick}
         nodeCanvasObject={(nodeObj, ctx, globalScale) => {
           const node = nodeObj as { x?: number, y?: number, name?: string, id?: string };
           if (!node.x || !node.y || !node.name) return;

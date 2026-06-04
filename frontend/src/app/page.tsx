@@ -54,7 +54,7 @@ export default function Home() {
     isWarmingUp, setIsWarmingUp,
     activeAgent, setActiveAgent,
     ragMode, setRagMode,
-    llmProvider, setLlmProvider,
+    llmProvider, setLlmProvider, developerResumeMode,
     isSidebarOpen, setIsSidebarOpen,
     isHistoryOpen, setIsHistoryOpen,
     isMobileNavOpen, setIsMobileNavOpen,
@@ -199,13 +199,13 @@ export default function Home() {
     }
   }, [loading]);
 
-  const handleAnalyze = async () => {
-    if (!topic) return;
+  const handleAnalyze = async (overrideTopic?: string) => {
+    const currentTopic = overrideTopic || topic;
+    if (!currentTopic) return;
     
     isAutoScrollPausedRef.current = false; // Reset scroll hold for new query
-    const userMessage: Message = { id: Date.now().toString(), role: 'user', content: topic };
+    const userMessage: Message = { id: Date.now().toString(), role: 'user', content: currentTopic };
     addMessage(userMessage);
-    const currentTopic = topic;
     setTopic("");
     setLoading(true);
     setIsWarmingUp(true); // Trigger warm-up state immediately
@@ -226,7 +226,8 @@ export default function Home() {
           history: messages.map(m => ({ role: m.role, content: m.content })),
           rag_mode: ragMode,
           user_id: userId,
-          llm_provider: llmProvider
+          llm_provider: llmProvider,
+          developer_resume_mode: developerResumeMode
         }),
       });
 

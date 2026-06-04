@@ -8,9 +8,9 @@ interface MessageListProps {
   messages: Message[];
   isWarmingUp: boolean;
   loading: boolean;
-  scrollContainerRef: React.RefObject<HTMLDivElement>;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
   handleScroll: () => void;
-  chatEndRef: React.RefObject<HTMLDivElement>;
+  chatEndRef: React.RefObject<HTMLDivElement | null>;
   scrollToChatBottom: () => void;
 }
 
