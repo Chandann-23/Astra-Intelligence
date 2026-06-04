@@ -280,6 +280,7 @@ export default function Home() {
               
               // Handle errors
               if (data.status === 'error') {
+                setIsWarmingUp(false);
                 addLog(`[ERROR]: ${data.message}`);
                 addMessage({ 
                   id: (Date.now() + 1).toString(), 
@@ -291,6 +292,7 @@ export default function Home() {
             }
             // Handle partial results during streaming
             else if (data.partial_result) {
+              setIsWarmingUp(false); // Turn off skeleton loader immediately
               setMessages((prev: Message[]) => {
                 const lastMessage = prev[prev.length - 1];
                 if (lastMessage && lastMessage.role === 'astra' && lastMessage.type === 'analysis') {
