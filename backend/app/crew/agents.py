@@ -117,13 +117,10 @@ async def invoke_llm(messages, queue: asyncio.Queue = None, provider: str = "gem
             
         try:
             if idx > 0:
-                fallback_msg = f"\n\n⚠️ *[Astra Engine: Primary provider ({provider.upper()}) rate-limited or quota exceeded. Switching to {current_provider.upper()} to complete research...]*\n\n"
-                accumulated_text += fallback_msg
                 if queue:
-                    await queue.put({"partial_result": fallback_msg})
                     await queue.put({
                         "status": "processing",
-                        "message": f"Switching to fallback: {current_provider.upper()}...",
+                        "message": f"Switching to fallback provider: {current_provider.upper()} (quota exceeded/rate-limited on {provider.upper()})",
                         "node": "researcher"
                     })
                     
@@ -132,7 +129,7 @@ async def invoke_llm(messages, queue: asyncio.Queue = None, provider: str = "gem
             if isinstance(result, str) and result.startswith("Error:"):
                 raise Exception(result)
                 
-            return accumulated_text + result
+            return result
             
         except Exception as e:
             last_error = str(e)
