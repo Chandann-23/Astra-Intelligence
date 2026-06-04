@@ -54,7 +54,7 @@ export default function Home() {
     isWarmingUp, setIsWarmingUp,
     activeAgent, setActiveAgent,
     ragMode, setRagMode,
-    llmProvider,
+    llmProvider, setLlmProvider,
     isSidebarOpen, setIsSidebarOpen,
     isHistoryOpen, setIsHistoryOpen,
     isMobileNavOpen, setIsMobileNavOpen,
@@ -250,6 +250,10 @@ export default function Home() {
             
             // Handle LangGraph status events
             if (data.status) {
+              if (data.status === 'provider_fallback' && data.provider) {
+                setLlmProvider(data.provider);
+                addLog(`[SYSTEM]: Auto-switched active LLM selection to ${data.provider.toUpperCase()} due to quota limits.`);
+              }
               // Only turn off warm-up state when research is truly complete
               if (data.status === 'completed' && data.result && data.result.trim() !== '') {
                 setIsWarmingUp(false);

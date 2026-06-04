@@ -119,6 +119,11 @@ async def invoke_llm(messages, queue: asyncio.Queue = None, provider: str = "gem
             if idx > 0:
                 if queue:
                     await queue.put({
+                        "status": "provider_fallback",
+                        "provider": current_provider,
+                        "node": "researcher"
+                    })
+                    await queue.put({
                         "status": "processing",
                         "message": f"Switching to fallback provider: {current_provider.upper()} (quota exceeded/rate-limited on {provider.upper()})",
                         "node": "researcher"
