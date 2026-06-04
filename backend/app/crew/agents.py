@@ -93,12 +93,53 @@ async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None, provider
         return f"Error: {error_msg}"
 
 async def invoke_llm(messages, queue: asyncio.Queue = None, provider: str = "gemini") -> str:
-    try:
-        return await _invoke_llm_with_retry(messages, queue, provider)
-    except RetryError:
-        return "Error: System is experiencing high traffic on the free tier API (Rate Limit Exceeded). Please wait a few seconds and try again."
-    except Exception as e:
-        return f"Error: {str(e)}"
+    fallback_providers = ["gemini", "mistral", "groq", "cerebras", "sambanova"]
+    
+    if provider in fallback_providers:
+        fallback_providers.remove(provider)
+    fallback_providers.insert(0, provider)
+    
+    last_error = None
+    accumulated_text = ""
+    
+    for idx, current_provider in enumerate(fallback_providers):
+        # Pre-check API key availability to skip providers without keys
+        if current_provider == "sambanova" and not os.getenv("SAMBANOVA_API_KEY"):
+            continue
+        elif current_provider == "groq" and not os.getenv("GROQ_API_KEY"):
+            continue
+        elif current_provider == "cerebras" and not os.getenv("CEREBRAS_API_KEY"):
+            continue
+        elif current_provider == "mistral" and not os.getenv("MISTRAL_API_KEY"):
+            continue
+        elif current_provider == "gemini" and not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")):
+            continue
+            
+        try:
+            if idx > 0:
+                fallback_msg = f"\n\n⚠️ *[Astra Engine: Primary provider ({provider.upper()}) rate-limited or quota exceeded. Switching to {current_provider.upper()} to complete research...]*\n\n"
+                accumulated_text += fallback_msg
+                if queue:
+                    await queue.put({"partial_result": fallback_msg})
+                    await queue.put({
+                        "status": "processing",
+                        "message": f"Switching to fallback: {current_provider.upper()}...",
+                        "node": "researcher"
+                    })
+                    
+            result = await _invoke_llm_with_retry(messages, queue, current_provider)
+            
+            if isinstance(result, str) and result.startswith("Error:"):
+                raise Exception(result)
+                
+            return accumulated_text + result
+            
+        except Exception as e:
+            last_error = str(e)
+            print(f"Astra Fallback Engine: {current_provider.upper()} failed: {last_error}. Trying next provider...")
+            continue
+            
+    return f"Error: All LLM providers exhausted. Last error: {last_error}"
 
 async def researcher_node(state: AgentState) -> AgentState:
     if state.get("revision_count") is None:
