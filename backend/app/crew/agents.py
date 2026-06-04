@@ -32,22 +32,34 @@ class AgentState(TypedDict):
     retry=retry_if_exception_type(RateLimitError)
 )
 async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None, provider: str = "gemini") -> str:
-    """Invoke LLM through LiteLLM with async streaming and tenacity backoff"""
+    """Invoke LLM through LiteLLM with async streaming and tenacity backoff.
+    
+    Supported providers and verified models (as of June 2026):
+    - gemini:    gemini/gemini-2.0-flash                        | Key: GEMINI_API_KEY    | 1,500 req/day free
+    - groq:      groq/llama-3.3-70b-versatile                   | Key: GROQ_API_KEY      | 1,000 req/day, 100k TPD free
+    - cerebras:  cerebras/gpt-oss-120b                          | Key: CEREBRAS_API_KEY  | 1M tokens/day free
+    - sambanova: sambanova/Llama-4-Maverick-17B-128E-Instruct   | Key: SAMBANOVA_API_KEY | $5 free credits
+    - mistral:   mistral/mistral-small-latest                   | Key: MISTRAL_API_KEY   | 1B tokens/month free (BEST free tier)
+    """
     if provider == "sambanova":
         api_key = os.getenv("SAMBANOVA_API_KEY")
-        model = "sambanova/Meta-Llama-3.3-70B-Instruct"
+        model = "sambanova/Llama-4-Maverick-17B-128E-Instruct"  # Current featured free model
     elif provider == "groq":
         api_key = os.getenv("GROQ_API_KEY")
-        model = "groq/llama-3.3-70b-versatile"
+        model = "groq/llama-3.3-70b-versatile"  # Verified active as of June 2026, 275+ tokens/sec
     elif provider == "cerebras":
         api_key = os.getenv("CEREBRAS_API_KEY")
-        model = "cerebras/llama3.3-70b"
+        model = "cerebras/gpt-oss-120b"  # Llama 3.3 70B deprecated Feb 16 2026; GPT-OSS 120B is current flagship
+    elif provider == "mistral":
+        api_key = os.getenv("MISTRAL_API_KEY")
+        model = "mistral/mistral-small-latest"  # Best free tier: 1B tokens/month, 60 RPM, no credit card
     else:  # default: gemini
-        api_key = os.getenv("GOOGLE_API_KEY")
-        model = "gemini/gemini-2.0-flash"
+        api_key = os.getenv("GEMINI_API_KEY")  # LiteLLM requires GEMINI_API_KEY (not GOOGLE_API_KEY) for gemini/ prefix
+        model = "gemini/gemini-2.0-flash"      # gemini/ prefix routes via AI Studio (simple API key)
         
     if not api_key:
         return f"Error: API key for {provider} not found in environment."
+
 
     # Normalize prompt to messages list if a string is passed
     if isinstance(messages, str):

@@ -35,10 +35,11 @@ export default function ChatInput({
   }, []);
 
   const models = [
-    { id: 'gemini',    label: 'Gemini 2.0 Flash',     iconColor: 'bg-emerald-500' },
-    { id: 'groq',      label: 'Groq Llama 3.3 70B',   iconColor: 'bg-orange-500'  },
-    { id: 'cerebras',  label: 'Cerebras Llama 3.3',    iconColor: 'bg-purple-500'  },
-    { id: 'sambanova', label: 'SambaNova Llama 3.3',   iconColor: 'bg-blue-500'    },
+    { id: 'gemini',    label: 'Gemini 2.0 Flash',      iconColor: 'bg-emerald-500' },
+    { id: 'mistral',   label: 'Mistral Small',          iconColor: 'bg-rose-500'    },
+    { id: 'groq',      label: 'Groq Llama 3.3 70B',    iconColor: 'bg-orange-500'  },
+    { id: 'cerebras',  label: 'Cerebras GPT-OSS 120B',  iconColor: 'bg-purple-500'  },
+    { id: 'sambanova', label: 'SambaNova Llama 4',      iconColor: 'bg-blue-500'    },
   ];
   
   const currentModel = models.find(m => m.id === llmProvider) || models[0];
@@ -91,7 +92,7 @@ export default function ChatInput({
                     <button
                       key={model.id}
                       onClick={() => {
-                        setLlmProvider(model.id as 'gemini' | 'sambanova' | 'groq' | 'cerebras');
+                        setLlmProvider(model.id as 'gemini' | 'sambanova' | 'groq' | 'cerebras' | 'mistral');
                         setIsDropdownOpen(false);
                       }}
                       className={`w-full text-left px-4 py-2.5 flex items-center justify-between hover:bg-white/5 transition-colors ${llmProvider === model.id ? 'bg-white/[0.03]' : ''}`}
