@@ -142,7 +142,8 @@ async def stream_analysis(request: AnalysisRequest):
             "queue": queue,
             "rag_mode": request.rag_mode,
             "llm_provider": request.llm_provider,
-            "developer_resume_mode": request.developer_resume_mode
+            "developer_resume_mode": request.developer_resume_mode,
+            "tool_loop_count": 0
         }
         
         async def run_graph(q, state):

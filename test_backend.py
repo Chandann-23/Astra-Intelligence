@@ -9,7 +9,7 @@ import json
 def test_backend_health():
     """Test backend health endpoint"""
     try:
-        response = requests.get("http://localhost:8000/health", timeout=10)
+        response = requests.get("http://127.0.0.1:8000/health", timeout=10)
         print(f"Health Check Status: {response.status_code}")
         if response.status_code == 200:
             print(f"Health Response: {response.json()}")
@@ -26,7 +26,7 @@ def test_research_request():
     try:
         payload = {"topic": "Explain Neural-Symbolic AI"}
         response = requests.post(
-            "http://localhost:8000/stream",
+            "http://127.0.0.1:8000/stream",
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=30

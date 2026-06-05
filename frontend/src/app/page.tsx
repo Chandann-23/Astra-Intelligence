@@ -254,12 +254,23 @@ export default function Home() {
               if (data.status === 'provider_fallback' && data.provider) {
                 setLlmProvider(data.provider);
                 addLog(`[SYSTEM]: Auto-switched active LLM selection to ${data.provider.toUpperCase()} due to quota limits.`);
+              } else if (data.status === 'error') {
+                setIsWarmingUp(false);
+                addLog(`[ERROR]: ${data.message}`);
+                addMessage({ 
+                  id: (Date.now() + 1).toString(), 
+                  role: 'astra', 
+                  content: `Error: ${data.message}` 
+                });
+                setLoading(false);
+              } else if (data.message) {
+                addLog(`[${data.node?.toUpperCase() || 'SYSTEM'}]: ${data.message}`);
               }
+              
               // Only turn off warm-up state when research is truly complete
               if (data.status === 'completed' && data.result && data.result.trim() !== '') {
                 setIsWarmingUp(false);
               }
-              addLog(`[${data.node?.toUpperCase() || 'SYSTEM'}]: ${data.message}`);
               
               // Update active agent based on node
               if (data.node === 'researcher') setActiveAgent("Researcher");
@@ -276,18 +287,6 @@ export default function Home() {
                 );
                 setActiveAgent(null);
                 addLog("[SYSTEM]: Analysis sequence complete.");
-                setLoading(false);
-              }
-              
-              // Handle errors
-              if (data.status === 'error') {
-                setIsWarmingUp(false);
-                addLog(`[ERROR]: ${data.message}`);
-                addMessage({ 
-                  id: (Date.now() + 1).toString(), 
-                  role: 'astra', 
-                  content: `Error: ${data.message}` 
-                });
                 setLoading(false);
               }
             }

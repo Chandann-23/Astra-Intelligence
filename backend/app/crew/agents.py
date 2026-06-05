@@ -57,6 +57,7 @@ class AgentState(TypedDict):
     execution_result: str
     llm_provider: str
     developer_resume_mode: bool
+    tool_loop_count: int
 
 @retry(
     stop=stop_after_attempt(3),
@@ -222,6 +223,7 @@ async def researcher_node(state: AgentState) -> AgentState:
         ```python
         <your python code here>
         ```
+        (Note: Your python script MUST print the final output using print() statements (e.g. print(result)), otherwise the execution engine will return an empty stdout.)
         - Otherwise, provide your detailed analysis.
         
         Code/Search Execution Result: {execution_result}
@@ -265,6 +267,7 @@ async def researcher_node(state: AgentState) -> AgentState:
 
 async def coder_node(state: AgentState) -> AgentState:
     """Extracts python code from researcher output and executes it."""
+    state["tool_loop_count"] = state.get("tool_loop_count", 0) + 1
     if state.get("queue"):
         await state["queue"].put({"status": "executing", "message": "Executing Python code...", "node": "coder"})
         
@@ -284,6 +287,7 @@ async def coder_node(state: AgentState) -> AgentState:
 
 async def searcher_node(state: AgentState) -> AgentState:
     """Performs web search using Tavily search tool."""
+    state["tool_loop_count"] = state.get("tool_loop_count", 0) + 1
     if state.get("queue"):
         await state["queue"].put({"status": "searching", "message": "Searching the web...", "node": "searcher"})
         
@@ -426,6 +430,11 @@ async def save_research_to_graph(state: AgentState) -> AgentState:
 
 def should_continue_from_researcher(state: AgentState) -> str:
     output = state.get("research_output", "")
+    tool_loop_count = state.get("tool_loop_count", 0)
+    
+    if tool_loop_count >= 3:
+        return "critic"
+        
     if "ACTION: CODE_EXECUTE" in output:
         return "coder"
     if "ACTION: WEB_SEARCH" in output:
