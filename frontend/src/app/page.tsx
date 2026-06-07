@@ -232,16 +232,24 @@ export default function Home() {
     
     const isFirstMessage = messages.filter(m => m.role === 'user').length === 0;
 
-    // ── Proactively create the chat row in Supabase on the first message ──
-    // Read session directly (not from React state) to avoid race conditions
-    // where userId state hasn't resolved yet when user quickly sends a message.
-    if (isFirstMessage) {
+    // Proactively read session to avoid race condition where userId state is stale
+    let activeUserId = userId;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        activeUserId = session.user.id;
+        if (userId !== activeUserId) {
+          setUserId(activeUserId);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to retrieve active session:', e);
+    }
+
+    // Persist chat and user message directly from frontend to Supabase
+    if (activeUserId) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const activeUserId = session?.user?.id ?? userId;
-        if (activeUserId) {
-          // Sync to store in case state was stale
-          if (!userId) setUserId(activeUserId);
+        if (isFirstMessage) {
           const chatTitle = currentTopic.length > 40
             ? currentTopic.slice(0, 40) + '...'
             : currentTopic;
@@ -251,9 +259,21 @@ export default function Home() {
             user_id: activeUserId,
             updated_at: new Date().toISOString(),
           });
+        } else {
+          await supabase.from('chats').update({
+            updated_at: new Date().toISOString(),
+          }).eq('id', currentChatId);
         }
+
+        // Insert User Message into messages table
+        await supabase.from('messages').insert({
+          chat_id: currentChatId,
+          role: 'user',
+          content: currentTopic,
+          type: 'text'
+        });
       } catch (e) {
-        console.warn('Frontend chat upsert failed:', e);
+        console.warn('Frontend database persistence failed for user message:', e);
       }
     }
 
@@ -262,14 +282,14 @@ export default function Home() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(userId && { "Authorization": `Bearer ${userId}` })
+          ...(activeUserId && { "Authorization": `Bearer ${activeUserId}` })
         },
         body: JSON.stringify({
           topic: currentTopic,
           history: messages.map(m => ({ role: m.role, content: m.content })),
           rag_mode: ragMode,
           chat_id: currentChatId,
-          user_id: userId,
+          user_id: activeUserId,
           llm_provider: llmProvider,
           developer_resume_mode: developerResumeMode
         }),
@@ -349,6 +369,20 @@ export default function Home() {
                 setActiveAgent(null);
                 addLog("[SYSTEM]: Analysis sequence complete.");
                 setLoading(false);
+
+                // Persist Astra message to Supabase directly from frontend
+                if (activeUserId) {
+                  supabase.from('messages').insert({
+                    chat_id: currentChatId,
+                    role: 'astra',
+                    content: cleanResult,
+                    type: 'analysis',
+                    is_memory_accessed: memoryAccessed,
+                    retrieved_nodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : null
+                  }).then(({ error }) => {
+                    if (error) console.warn('Frontend Astra message insert failed:', error);
+                  });
+                }
               }
             }
             // Backend signals an ACTION: block was detected mid-stream — clear any partial bubble
@@ -405,10 +439,11 @@ export default function Home() {
               else if (content.includes("Critic")) setActiveAgent("Critic");
               else if (content.includes("Final Answer")) setActiveAgent(null);
             } else if (data.type === 'result') {
+              const cleanContent = data.content;
               addMessage({ 
                 id: (Date.now() + 1).toString(), 
                 role: 'astra', 
-                content: data.content,
+                content: cleanContent,
                 type: 'analysis',
                 retrievedNodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined,
                 isMemoryAccessed: memoryAccessed
@@ -416,6 +451,20 @@ export default function Home() {
               setActiveAgent(null);
               addLog("[SYSTEM]: Analysis sequence complete. Compiling report...");
               setLoading(false);
+
+              // Persist legacy Astra message to Supabase
+              if (activeUserId) {
+                supabase.from('messages').insert({
+                  chat_id: currentChatId,
+                  role: 'astra',
+                  content: cleanContent,
+                  type: 'analysis',
+                  is_memory_accessed: memoryAccessed,
+                  retrieved_nodes: currentRetrievedNodes.length > 0 ? currentRetrievedNodes : null
+                }).then(({ error }) => {
+                  if (error) console.warn('Frontend legacy Astra message insert failed:', error);
+                });
+              }
             } else if (data.type === 'error') {
               addLog(`[ERROR]: ${data.content}`);
               addMessage({ 

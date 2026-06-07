@@ -109,34 +109,8 @@ async def stream_analysis(request: AnalysisRequest, http_request: Request):
     
     print(f'DEBUG: Request for: {request.topic} | RAG Mode: {request.rag_mode} | Chat ID: {request.chat_id} | User ID: {effective_user_id}')
     
-    # 1. Asynchronously persist the User message
-    if supabase_client and request.chat_id and effective_user_id:
-        try:
-            # Upsert chat metadata (only set title on the first message of a new chat)
-            chat_title = request.topic[:40] + ('...' if len(request.topic) > 40 else '') if not request.history else None
-            
-            if chat_title:
-                supabase_client.table("chats").upsert({
-                    "id": request.chat_id,
-                    "title": chat_title,
-                    "user_id": effective_user_id,
-                    "updated_at": "now()",
-                }).execute()
-            else:
-                # Follow-up message: bump updated_at so chat floats to top of sidebar
-                supabase_client.table("chats").update({
-                    "updated_at": "now()"
-                }).eq("id", request.chat_id).execute()
-                
-            # Insert User Message
-            supabase_client.table("messages").insert({
-                "chat_id": request.chat_id,
-                "role": "user",
-                "content": request.topic,
-                "type": "text"
-            }).execute()
-        except Exception as e:
-            print(f"Database sync error (user msg): {e}")
+    # Database persistence is now handled directly by the frontend to ensure robust session/CORS handling.
+    pass
 
     try:
         queue = asyncio.Queue()
@@ -220,17 +194,8 @@ async def stream_analysis(request: AnalysisRequest, http_request: Request):
                     "node": "end"
                 }
                 
-                # 2. Asynchronously persist the Astra message
-                if supabase_client and request.chat_id:
-                    try:
-                        supabase_client.table("messages").insert({
-                            "chat_id": request.chat_id,
-                            "role": "astra",
-                            "content": clean_result,
-                            "type": "analysis"
-                        }).execute()
-                    except Exception as e:
-                        print(f"Database sync error (astra msg): {e}")
+                # Astra message persistence is now handled by the frontend.
+                pass
                         
                 await q.put(final_response)
             except Exception as graph_error:
