@@ -54,17 +54,17 @@ export default function ChatInput({
   };
 
   const models = [
-    { id: 'gemini',    label: 'Gemini 2.0 Flash',      iconColor: 'bg-emerald-500' },
     { id: 'mistral',   label: 'Mistral Small',          iconColor: 'bg-rose-500'    },
     { id: 'groq',      label: 'Groq Llama 3.3 70B',    iconColor: 'bg-orange-500'  },
     { id: 'cerebras',  label: 'Cerebras GPT-OSS 120B',  iconColor: 'bg-purple-500'  },
     { id: 'sambanova', label: 'SambaNova Llama 4',      iconColor: 'bg-blue-500'    },
+    { id: 'gemini',    label: 'Gemini 2.0 Flash',      iconColor: 'bg-emerald-500' },
   ];
   
   const currentModel = models.find(m => m.id === llmProvider) || models[0];
 
   return (
-    <div className="p-4 md:p-8 bg-gradient-to-t from-black via-black/80 to-transparent relative z-20 shrink-0">
+    <div className="p-3 md:p-8 bg-gradient-to-t from-black via-black/80 to-transparent relative z-20 shrink-0">
       <div className="max-w-4xl mx-auto relative group">
         
         {/* Prompts & Toggle Header */}
@@ -101,7 +101,7 @@ export default function ChatInput({
 
         <div className="absolute inset-0 bg-emerald-500/5 blur-2xl rounded-[32px] opacity-0 group-focus-within:opacity-100 transition-opacity duration-700 pointer-events-none" />
         
-        <div className="relative flex items-center gap-4 bg-white/[0.02] backdrop-blur-3xl border border-white/10 p-2 pl-6 rounded-[24px] focus-within:border-emerald-500/30 focus-within:bg-white/[0.04] transition-all duration-500 focus-within:ring-2 focus-within:ring-emerald-500/10 shadow-[0_0_50px_rgba(0,0,0,0.3)]">
+        <div className="relative flex items-center gap-2 md:gap-4 bg-white/[0.02] backdrop-blur-3xl border border-white/10 p-2 pl-3 md:pl-6 rounded-[20px] md:rounded-[24px] focus-within:border-emerald-500/30 focus-within:bg-white/[0.04] transition-all duration-500 focus-within:ring-2 focus-within:ring-emerald-500/10 shadow-[0_0_50px_rgba(0,0,0,0.3)] min-w-0">
           <input
             type="file"
             ref={fileInputRef}
@@ -123,11 +123,11 @@ export default function ChatInput({
           <div className="relative border-r border-white/10 pr-4 mr-2 shrink-0" ref={dropdownRef}>
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-500 hover:text-zinc-300 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 md:gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-500 hover:text-zinc-300 transition-colors whitespace-nowrap"
             >
               <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${currentModel.iconColor}`} /> 
-              <span className="truncate max-w-[72px] sm:max-w-none">{currentModel.label}</span>
-              {isDropdownOpen ? <ChevronDown size={12} className="ml-1 opacity-50 shrink-0" /> : <ChevronUp size={12} className="ml-1 opacity-50 shrink-0" />}
+              <span className="hidden sm:inline truncate max-w-[90px] md:max-w-none">{currentModel.label}</span>
+              {isDropdownOpen ? <ChevronDown size={12} className="ml-0.5 opacity-50 shrink-0" /> : <ChevronUp size={12} className="ml-0.5 opacity-50 shrink-0" />}
             </button>
 
             <AnimatePresence>
@@ -163,7 +163,7 @@ export default function ChatInput({
           </div>
           
           <input
-            className="flex-1 bg-transparent border-none py-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none font-medium selection:bg-emerald-500/30"
+            className="flex-1 min-w-0 bg-transparent border-none py-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none font-medium selection:bg-emerald-500/30"
             placeholder="Initialize research sequence..."
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
@@ -172,7 +172,7 @@ export default function ChatInput({
           <button
             onClick={() => handleAnalyze()}
             disabled={loading || !topic}
-            className={`px-6 py-3 rounded-[18px] transition-all flex items-center justify-center font-bold tracking-tighter uppercase text-xs border border-white/5 ${
+            className={`shrink-0 px-3 md:px-6 py-3 rounded-[16px] md:rounded-[18px] transition-all flex items-center justify-center font-bold tracking-tighter uppercase text-xs border border-white/5 ${
               loading || !topic 
                 ? 'bg-black/20 text-zinc-700 cursor-not-allowed' 
                 : 'bg-zinc-900 text-zinc-300 hover:text-emerald-400 hover:bg-black hover:border-emerald-500/30 hover:scale-[1.02] active:scale-[0.98]'
@@ -181,7 +181,10 @@ export default function ChatInput({
             {loading ? (
               <div className="w-5 h-5 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
             ) : (
-              <span className="flex items-center gap-2">Execute <Send size={14} /></span>
+              <>
+                <span className="hidden md:flex items-center gap-2">Execute <Send size={14} /></span>
+                <span className="flex md:hidden"><Send size={16} /></span>
+              </>
             )}
           </button>
         </div>

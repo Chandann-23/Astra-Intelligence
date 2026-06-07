@@ -165,7 +165,6 @@ export default function Sidebar({
             )}
             <div className="flex flex-col items-start truncate">
               <span className="text-[14px] font-medium text-zinc-200 truncate w-36 text-left">{userName || 'Loading...'}</span>
-              <span className="text-[12px] text-zinc-500">Free</span>
             </div>
           </div>
         </button>
