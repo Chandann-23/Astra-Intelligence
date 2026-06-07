@@ -233,18 +233,25 @@ export default function Home() {
     const isFirstMessage = messages.filter(m => m.role === 'user').length === 0;
 
     // ── Proactively create the chat row in Supabase on the first message ──
-    // This guarantees the sidebar shows the new chat immediately, even if
-    // the backend persistence is slow or fails.
-    if (isFirstMessage && userId) {
-      const chatTitle = currentTopic.length > 40
-        ? currentTopic.slice(0, 40) + '...'
-        : currentTopic;
+    // Read session directly (not from React state) to avoid race conditions
+    // where userId state hasn't resolved yet when user quickly sends a message.
+    if (isFirstMessage) {
       try {
-        await supabase.from('chats').upsert({
-          id: currentChatId,
-          title: chatTitle,
-          user_id: userId,
-        });
+        const { data: { session } } = await supabase.auth.getSession();
+        const activeUserId = session?.user?.id ?? userId;
+        if (activeUserId) {
+          // Sync to store in case state was stale
+          if (!userId) setUserId(activeUserId);
+          const chatTitle = currentTopic.length > 40
+            ? currentTopic.slice(0, 40) + '...'
+            : currentTopic;
+          await supabase.from('chats').upsert({
+            id: currentChatId,
+            title: chatTitle,
+            user_id: activeUserId,
+            updated_at: new Date().toISOString(),
+          });
+        }
       } catch (e) {
         console.warn('Frontend chat upsert failed:', e);
       }

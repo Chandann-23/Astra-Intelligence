@@ -99,25 +99,33 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/stream")
-async def stream_analysis(request: AnalysisRequest):
-    print(f'DEBUG: Request for: {request.topic} | RAG Mode: {request.rag_mode} | Chat ID: {request.chat_id}')
+async def stream_analysis(request: AnalysisRequest, http_request: Request):
+    # Fallback: extract user_id from Authorization header if not in body
+    effective_user_id = request.user_id
+    if not effective_user_id:
+        auth_header = http_request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            effective_user_id = auth_header.removeprefix("Bearer ").strip() or None
+    
+    print(f'DEBUG: Request for: {request.topic} | RAG Mode: {request.rag_mode} | Chat ID: {request.chat_id} | User ID: {effective_user_id}')
     
     # 1. Asynchronously persist the User message
-    if supabase_client and request.chat_id and request.user_id:
+    if supabase_client and request.chat_id and effective_user_id:
         try:
-            # Upsert chat metadata
+            # Upsert chat metadata (only set title on the first message of a new chat)
             chat_title = request.topic[:40] + ('...' if len(request.topic) > 40 else '') if not request.history else None
             
-            # Note: For Supabase realtime to work best, we check if title exists (new chat)
             if chat_title:
                 supabase_client.table("chats").upsert({
                     "id": request.chat_id,
                     "title": chat_title,
-                    "user_id": request.user_id,
+                    "user_id": effective_user_id,
+                    "updated_at": "now()",
                 }).execute()
             else:
+                # Follow-up message: bump updated_at so chat floats to top of sidebar
                 supabase_client.table("chats").update({
-                    "id": request.chat_id # Dummy update just to touch the table, usually updated_at auto-triggers
+                    "updated_at": "now()"
                 }).eq("id", request.chat_id).execute()
                 
             # Insert User Message
