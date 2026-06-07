@@ -194,10 +194,20 @@ async def stream_analysis(request: AnalysisRequest):
                         # We just send the node completion event
                         await q.put(status_update)
                 
+                raw_result = last_seen_state.get("research_output", "")
+                # Safety net: strip any leftover ACTION: blocks that leaked into the final answer
+                import re as _re
+                clean_result = _re.sub(
+                    r'ACTION:\s*(?:WEB_SEARCH|CODE_EXECUTE)[\s\S]*?(?=\n\n|\Z)',
+                    '',
+                    raw_result,
+                    flags=_re.DOTALL
+                ).strip()
+                
                 final_response = {
                     "status": "completed",
                     "message": "Research analysis completed successfully",
-                    "result": last_seen_state.get("research_output", ""),
+                    "result": clean_result,
                     "storage_result": last_seen_state.get("storage_result", ""),
                     "node": "end"
                 }
@@ -208,7 +218,7 @@ async def stream_analysis(request: AnalysisRequest):
                         supabase_client.table("messages").insert({
                             "chat_id": request.chat_id,
                             "role": "astra",
-                            "content": last_seen_state.get("research_output", ""),
+                            "content": clean_result,
                             "type": "analysis"
                         }).execute()
                     except Exception as e:

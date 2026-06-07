@@ -330,8 +330,12 @@ export default function Home() {
               
               // Handle completion
               if (data.status === 'completed' && data.result) {
+                // Strip any ACTION: blocks that leaked through into the final answer
+                const cleanResult = data.result
+                  .replace(/ACTION:\s*(?:WEB_SEARCH|CODE_EXECUTE)[\s\S]*?(?=\n\n|$)/g, '')
+                  .trim();
                 updateLastAstraMessage(
-                  data.result, 
+                  cleanResult,
                   currentRetrievedNodes.length > 0 ? currentRetrievedNodes : undefined, 
                   memoryAccessed
                 );

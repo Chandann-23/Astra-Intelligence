@@ -472,6 +472,15 @@ def should_continue_from_researcher(state: AgentState) -> str:
     tool_loop_count = state.get("tool_loop_count", 0)
     
     if tool_loop_count >= 3:
+        # Circuit breaker: force to critic but STRIP any leftover ACTION blocks
+        # so they don't leak into the final answer shown to the user
+        cleaned = re.sub(
+            r'ACTION:\s*(?:WEB_SEARCH|CODE_EXECUTE)[\s\S]*?(?=\n\n|\Z)',
+            '',
+            output,
+            flags=re.DOTALL
+        ).strip()
+        state["research_output"] = cleaned
         return "critic"
         
     if "ACTION: CODE_EXECUTE" in output:
