@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, Loader2, Sparkles } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -148,33 +148,23 @@ export default function LoginPage() {
       <div className="absolute inset-0 opacity-[0.015] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] pointer-events-none" />
       
       <div className="w-full max-w-md z-10">
-        {/* Logo and Brand */}
+        {/* Brand */}
         <div className="text-center mb-8 flex flex-col items-center">
-          <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-purple-500 p-[1px] shadow-[0_0_30px_rgba(6,182,212,0.2)] mb-4"
-          >
-            <div className="w-full h-full bg-[#0a0a0a] rounded-2xl flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-cyan-400" />
-            </div>
-          </motion.div>
-          <motion.h1 
+          <motion.h1
             initial={{ y: -10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-3xl font-bold text-white tracking-tight"
+            className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-500 tracking-tight"
           >
             Astra Engine
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ y: 5, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-[10px] text-zinc-500 uppercase tracking-[0.35em] mt-2 font-bold"
+            className="text-[10px] text-zinc-500 uppercase tracking-[0.3em] mt-2 font-bold"
           >
-            Secure access gateway
+            Multi-Agent Intelligence
           </motion.p>
         </div>
 
