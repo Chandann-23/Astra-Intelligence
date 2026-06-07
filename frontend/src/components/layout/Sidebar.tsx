@@ -65,10 +65,10 @@ export default function Sidebar({
 
   useEffect(() => {
     fetchChats();
-    // Refresh periodically
+    // Refresh periodically AND whenever the active chatId changes
     const interval = setInterval(fetchChats, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentChatId]);
 
   return (
     <div className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 md:relative md:translate-x-0 w-[240px] h-full bg-zinc-950 border-r border-white/5 flex flex-col py-4 space-y-4 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>

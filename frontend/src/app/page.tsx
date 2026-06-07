@@ -214,6 +214,26 @@ export default function Home() {
     let memoryAccessed = false;
     addLog(`[USER]: Start analysis for "${currentTopic}"`);
     
+    const isFirstMessage = messages.filter(m => m.role === 'user').length === 0;
+
+    // ── Proactively create the chat row in Supabase on the first message ──
+    // This guarantees the sidebar shows the new chat immediately, even if
+    // the backend persistence is slow or fails.
+    if (isFirstMessage && userId) {
+      const chatTitle = currentTopic.length > 40
+        ? currentTopic.slice(0, 40) + '...'
+        : currentTopic;
+      try {
+        await supabase.from('chats').upsert({
+          id: currentChatId,
+          title: chatTitle,
+          user_id: userId,
+        });
+      } catch (e) {
+        console.warn('Frontend chat upsert failed:', e);
+      }
+    }
+
     try {
       const response = await fetch(`${BACKEND_URL}/stream`, {
         method: 'POST',
@@ -225,6 +245,7 @@ export default function Home() {
           topic: currentTopic,
           history: messages.map(m => ({ role: m.role, content: m.content })),
           rag_mode: ragMode,
+          chat_id: currentChatId,
           user_id: userId,
           llm_provider: llmProvider,
           developer_resume_mode: developerResumeMode
