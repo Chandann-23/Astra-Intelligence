@@ -91,8 +91,24 @@ export default function Home() {
         .order('created_at', { ascending: true });
         
       if (error) throw error;
-      if (data) {
-        loadChat(chatId, data);
+
+      if (data && data.length > 0) {
+        // Map raw Supabase rows → frontend Message shape
+        const mapped: Message[] = data.map((row: any) => ({
+          id: String(row.id),
+          role: row.role as 'user' | 'astra',
+          content: row.content ?? '',
+          type: row.type ?? (row.role === 'astra' ? 'analysis' : 'text'),
+          retrievedNodes: row.retrieved_nodes ?? undefined,
+          isMemoryAccessed: row.is_memory_accessed ?? false,
+        }));
+        loadChat(chatId, mapped);
+      } else {
+        // Chat exists in history but no messages saved (old chat before fix)
+        // Show a clean empty state rather than a blank screen
+        loadChat(chatId, [
+          { id: 'init', role: 'astra', content: "Chat history for this session isn't available — it was created before message persistence was enabled. Start a new query to continue." }
+        ]);
       }
     } catch (err) {
       console.error("Failed to load chat", err);
