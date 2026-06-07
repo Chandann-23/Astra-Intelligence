@@ -109,13 +109,52 @@ async def _invoke_llm_with_retry(messages, queue: asyncio.Queue = None, provider
         )
         
         full_text = ""
+        # Buffer to detect ACTION: blocks before streaming to the UI.
+        # The LLM may decide to call a tool (WEB_SEARCH / CODE_EXECUTE) as its
+        # first response. Those tokens are internal routing signals and must NOT
+        # be shown in the chat bubble. We accumulate until we can determine
+        # whether this is an action or a real answer, then either suppress or
+        # flush the buffer.
+        token_buffer = ""
+        action_detected = False
+        # Once we've confirmed it's a real answer we stream directly without buffering
+        confirmed_real_answer = False
+        # Threshold: after this many chars with no ACTION marker, flush as real answer
+        BUFFER_LOOKAHEAD = 80
+
         async for chunk in response:
             content = chunk.choices[0].delta.content
             if content:
                 full_text += content
-                if queue:
+
+                if not queue:
+                    continue
+
+                if confirmed_real_answer:
+                    # Already confirmed: stream directly
                     await queue.put({"partial_result": content})
-                    
+                elif action_detected:
+                    # Suppress — this is an ACTION block, don't send to UI
+                    pass
+                else:
+                    token_buffer += content
+                    # Check if buffer contains an ACTION marker
+                    if "ACTION:" in token_buffer:
+                        action_detected = True
+                        # Emit a clear_stream event so the frontend removes
+                        # any partial content already displayed
+                        await queue.put({"clear_stream": True})
+                        # Don't flush this buffer — it's internal agent routing
+                    elif len(token_buffer) >= BUFFER_LOOKAHEAD:
+                        # Buffer is long enough with no ACTION marker — it's a real answer
+                        confirmed_real_answer = True
+                        await queue.put({"partial_result": token_buffer})
+                        token_buffer = ""
+
+        # Flush any remaining buffer if it wasn't an action block
+        if queue and token_buffer and not action_detected:
+            await queue.put({"partial_result": token_buffer})
+
         return full_text
         
     except RateLimitError as e:

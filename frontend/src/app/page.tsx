@@ -277,6 +277,19 @@ export default function Home() {
               else if (data.node === 'critic') setActiveAgent("Critic");
               else if (data.node === 'storage') setActiveAgent("Storage");
               else if (data.node === 'end') setActiveAgent(null);
+
+              // When the agent routes to a tool (web search / code exec), remove
+              // any partial streaming bubble that contained the ACTION: text
+              if (data.status === 'searching' || data.status === 'executing') {
+                setMessages((prev: Message[]) => {
+                  const last = prev[prev.length - 1];
+                  if (last && last.role === 'astra' && last.type === 'analysis') {
+                    return prev.slice(0, -1);
+                  }
+                  return prev;
+                });
+                setIsWarmingUp(true); // Show skeleton while tool runs
+              }
               
               // Handle completion
               if (data.status === 'completed' && data.result) {
@@ -289,6 +302,17 @@ export default function Home() {
                 addLog("[SYSTEM]: Analysis sequence complete.");
                 setLoading(false);
               }
+            }
+            // Backend signals an ACTION: block was detected mid-stream — clear any partial bubble
+            else if (data.clear_stream) {
+              setMessages((prev: Message[]) => {
+                const last = prev[prev.length - 1];
+                if (last && last.role === 'astra' && last.type === 'analysis') {
+                  return prev.slice(0, -1);
+                }
+                return prev;
+              });
+              setIsWarmingUp(true); // Show skeleton while tool executes
             }
             // Handle partial results during streaming
             else if (data.partial_result) {
