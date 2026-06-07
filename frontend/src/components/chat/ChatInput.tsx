@@ -67,37 +67,48 @@ export default function ChatInput({
     <div className="p-3 md:p-8 bg-gradient-to-t from-black via-black/80 to-transparent relative z-20 shrink-0">
       <div className="max-w-4xl mx-auto relative group">
         
-        {/* Prompts & Toggle Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3 px-2">
-          {/* Sample Prompts Pills */}
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold mr-1">Suggestions:</span>
-            {activePrompts.map((p, idx) => (
-              <button
-                key={idx}
-                disabled={loading}
-                onClick={() => handlePromptClick(p.text)}
-                className="text-[10px] text-zinc-400 bg-white/[0.02] border border-white/5 hover:border-cyan-500/20 hover:bg-cyan-500/5 px-3 py-1 rounded-full transition-all text-left truncate max-w-[280px] sm:max-w-none disabled:opacity-50 disabled:cursor-not-allowed"
-                title={p.text}
-              >
-                <span className="font-semibold text-cyan-500 mr-1">[{p.label}]</span> {p.text}
-              </button>
-            ))}
-          </div>
+        {/* Prompts & Toggle Header — hidden while typing or generating */}
+        <AnimatePresence>
+          {!topic && !loading && (
+            <motion.div
+              key="suggestions"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18 }}
+              className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3 px-2"
+            >
+              {/* Sample Prompts Pills */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold mr-1">Suggestions:</span>
+                {activePrompts.map((p, idx) => (
+                  <button
+                    key={idx}
+                    disabled={loading}
+                    onClick={() => handlePromptClick(p.text)}
+                    className="text-[10px] text-zinc-400 bg-white/[0.02] border border-white/5 hover:border-cyan-500/20 hover:bg-cyan-500/5 px-3 py-1 rounded-full transition-all text-left truncate max-w-[280px] sm:max-w-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={p.text}
+                  >
+                    <span className="font-semibold text-cyan-500 mr-1">[{p.label}]</span> {p.text}
+                  </button>
+                ))}
+              </div>
 
-          {/* Developer RAG Toggle */}
-          <button
-            onClick={() => setDeveloperResumeMode(!developerResumeMode)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold uppercase tracking-wider transition-all self-start md:self-auto ${
-              developerResumeMode
-                ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] animate-pulse'
-                : 'bg-zinc-950/40 border-white/5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
-            }`}
-            title="Toggle Developer Portfolio Index RAG"
-          >
-            🚀 Developer_RAG_Mode: {developerResumeMode ? 'ON' : 'OFF'}
-          </button>
-        </div>
+              {/* Developer RAG Toggle */}
+              <button
+                onClick={() => setDeveloperResumeMode(!developerResumeMode)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[9px] font-bold uppercase tracking-wider transition-all self-start md:self-auto ${
+                  developerResumeMode
+                    ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)] animate-pulse'
+                    : 'bg-zinc-950/40 border-white/5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                }`}
+                title="Toggle Developer Portfolio Index RAG"
+              >
+                🚀 Developer_RAG_Mode: {developerResumeMode ? 'ON' : 'OFF'}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="absolute inset-0 bg-emerald-500/5 blur-2xl rounded-[32px] opacity-0 group-focus-within:opacity-100 transition-opacity duration-700 pointer-events-none" />
         

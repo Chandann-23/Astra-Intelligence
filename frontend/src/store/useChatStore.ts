@@ -75,7 +75,7 @@ export const useChatStore = create<ChatState>((set) => ({
   isWarmingUp: false,
   activeAgent: null,
   ragMode: 'general',
-  llmProvider: 'gemini',
+  llmProvider: 'mistral',
   developerResumeMode: false,
   
   isSidebarOpen: true,
