@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Paperclip, Send, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatStore } from '@/store/useChatStore';
+import { AUTOCORRECT_MAP } from '@/lib/autocorrect';
 
 interface ChatInputProps {
   loading: boolean;
@@ -51,6 +52,28 @@ export default function ChatInput({
   const handlePromptClick = (promptText: string) => {
     setTopic("");
     handleAnalyze(promptText);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Live autocorrect when typing at the end of the input and typing a space
+    if (e.target.selectionStart === value.length && value.endsWith(' ')) {
+      const words = value.trimEnd().split(/\s+/);
+      const lastWordIndex = words.length - 1;
+      const lastWord = words[lastWordIndex];
+      if (lastWord) {
+        const cleanWord = lastWord.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").toLowerCase();
+        const mapped = AUTOCORRECT_MAP[cleanWord];
+        if (mapped) {
+          words[lastWordIndex] = lastWord.replace(new RegExp(cleanWord, 'i'), mapped);
+          setTopic(words.join(' ') + ' ');
+          return;
+        }
+      }
+    }
+    
+    setTopic(value);
   };
 
   const models = [
@@ -177,7 +200,7 @@ export default function ChatInput({
             className="flex-1 min-w-0 bg-transparent border-none py-4 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none font-medium selection:bg-emerald-500/30"
             placeholder="Initialize research sequence..."
             value={topic}
-            onChange={(e) => setTopic(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={(e) => e.key === 'Enter' && !loading && handleAnalyze()}
           />
           <button

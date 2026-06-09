@@ -40,8 +40,8 @@ import ChatInput from '@/components/chat/ChatInput';
 import MessageList from '@/components/chat/MessageList';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
-
 import { useChatStore } from '@/store/useChatStore';
+import { applyAutocorrect } from '@/lib/autocorrect';
 
 export default function Home() {
   const {
@@ -216,8 +216,11 @@ export default function Home() {
   }, [loading]);
 
   const handleAnalyze = async (overrideTopic?: string) => {
-    const currentTopic = overrideTopic || topic;
-    if (!currentTopic) return;
+    const rawTopic = overrideTopic || topic;
+    if (!rawTopic) return;
+    
+    // Apply full sentence autocorrect
+    const currentTopic = applyAutocorrect(rawTopic);
     
     isAutoScrollPausedRef.current = false; // Reset scroll hold for new query
     const userMessage: Message = { id: Date.now().toString(), role: 'user', content: currentTopic };
