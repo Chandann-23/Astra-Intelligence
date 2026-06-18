@@ -2,6 +2,7 @@ import uvicorn
 import os
 import json
 import asyncio
+import re
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,7 +25,7 @@ else:
     print('⚠️ Supabase credentials missing. Database persistence disabled.')
 
 # Optimized import to prevent "Warming Up" phase delays
-from app.crew.agents import app_graph
+from app.crew.agents import app_graph, invoke_llm
 
 app = FastAPI()
 
@@ -98,6 +99,44 @@ async def upload_file(file: UploadFile = File(...)):
             raise HTTPException(status_code=500, detail="Ingestion failed. Database offline.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def is_conversational_query(topic: str) -> bool:
+    # Standardize topic
+    t = topic.lower().strip().strip("?!.,- ")
+    
+    # Exact match common words
+    greetings = {
+        "hi", "hello", "hey", "greetings", "howdy", "yo", "sup", "hola",
+        "good morning", "good afternoon", "good evening", "good day",
+        "hey there", "hi there", "hello there", "hello astra", "hey astra",
+        "hey bro", "whats up", "what's up", "hey bro what's up", "hey bro whats up"
+    }
+    if t in greetings:
+        return True
+        
+    # Common short small talk phrases
+    small_talk = [
+        "how are you", "how's it going", "how is it going", "how are you doing",
+        "what's up", "whats up", "how have you been", "who are you", 
+        "what is your name", "what do you do", "tell me about yourself",
+        "nice to meet you", "good to see you", "hey bro", "what can you do"
+    ]
+    for phrase in small_talk:
+        if phrase in t:
+            # Ensure it's not a longer research question containing the phrase
+            if len(t.split()) <= 6:
+                return True
+                
+    # Match pattern "hey/hi/hello [how are you / what's up / etc]"
+    # Regex to match simple greetings with or without punctuation
+    pattern = r"^(hi|hello|hey|yo|sup|greetings|hola)\b.*"
+    if re.match(pattern, t):
+        # If the greeting is part of a longer sentence, only classify as conversational
+        # if the total word count is small (<= 7 words)
+        if len(t.split()) <= 7:
+            return True
+            
+    return False
 
 @app.post("/stream")
 async def stream_analysis(request: AnalysisRequest, http_request: Request):
@@ -202,8 +241,55 @@ async def stream_analysis(request: AnalysisRequest, http_request: Request):
             except Exception as graph_error:
                 await q.put({'status': 'error', 'message': str(graph_error), 'node': 'end'})
         
-        # Launch background task for graph execution
-        task = asyncio.create_task(run_graph(queue, initial_state))
+        async def run_conversational(q):
+            try:
+                # Inform frontend that processing has started
+                await q.put({"status": "processing", "message": "Astra is typing...", "node": "researcher"})
+                
+                # Format system prompt for casual conversation / human interaction
+                system_prompt = (
+                    "You are Astra, a highly intelligent, friendly, and human-like AI assistant. "
+                    "The user is engaging in casual conversation, small talk, or greeting you. "
+                    "Respond in a very natural, warm, friendly, and human-like tone (e.g. dynamic greeting, "
+                    "matching their vibe/slang if appropriate). Keep your response relatively brief (1-3 sentences) "
+                    "and invite them to ask you any question, research query, or analysis topic."
+                )
+                
+                # Gather recent history
+                history_messages = []
+                for msg in request.history[-6:]:
+                    role = "assistant" if msg.get("role") == "astra" else "user"
+                    content = msg.get("content", "")
+                    if "System initialized" in content:
+                        continue
+                    if role == "assistant" and len(content) > 1500:
+                        content = content[:1500] + "\n\n... [Previous response truncated]"
+                    history_messages.append({"role": role, "content": content})
+                
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    *history_messages,
+                    {"role": "user", "content": request.topic}
+                ]
+                
+                # Call invoke_llm to stream results
+                response = await invoke_llm(messages, q, request.llm_provider)
+                
+                final_response = {
+                    "status": "completed",
+                    "message": "Chat response completed",
+                    "result": response.strip(),
+                    "node": "end"
+                }
+                await q.put(final_response)
+            except Exception as graph_error:
+                await q.put({'status': 'error', 'message': str(graph_error), 'node': 'end'})
+
+        # Launch background task for execution: conversational router
+        if is_conversational_query(request.topic):
+            task = asyncio.create_task(run_conversational(queue))
+        else:
+            task = asyncio.create_task(run_graph(queue, initial_state))
         
         async def generate_stream():
             yield f"data: {json.dumps({'status': 'initializing', 'message': 'Astra Warming Up...', 'node': 'start'})}\n\n"
