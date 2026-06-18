@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, MessageSquare, Info, RefreshCw, User, LogOut, X } from 'lucide-react';
+import { Plus, MessageSquare, Info, RefreshCw, User, LogOut, X, Trash2, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -30,7 +30,52 @@ export default function Sidebar({
   const [userName, setUserName] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
+
+  const initiateDelete = (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    setDeletingId(chatId);
+  };
+
+  const cancelDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeletingId(null);
+  };
+
+  const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    try {
+      // Step 1: Delete messages first to prevent foreign key constraints
+      const { error: messagesError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('chat_id', chatId);
+        
+      if (messagesError) throw messagesError;
+
+      // Step 2: Delete the chat itself
+      const { error: chatError } = await supabase
+        .from('chats')
+        .delete()
+        .eq('id', chatId);
+
+      if (chatError) throw chatError;
+
+      // Step 3: If this was the active chat, reset workspace
+      if (chatId === currentChatId) {
+        resetChat();
+      }
+
+      showToast("Chat deleted successfully");
+      fetchChats();
+    } catch (err) {
+      console.error("Failed to delete chat:", err);
+      showToast("Failed to delete chat");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -103,23 +148,61 @@ export default function Sidebar({
 
       {/* Recent History Section */}
       <div className="flex-1 flex flex-col px-2 space-y-1 overflow-y-auto custom-scrollbar">
-        {chats.map(chat => (
-          <button 
-            key={chat.id}
-            onClick={() => {
-              loadChat(chat.id);
-              setIsMobileNavOpen(false); // Auto-close on mobile after selecting chat
-            }}
-            className={`w-full px-3 py-3 rounded-xl flex items-center gap-3 transition-all cursor-pointer group text-left ${
-              currentChatId === chat.id ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-transparent border-transparent hover:bg-white/5'
-            } border`} 
-          >
-            <MessageSquare size={14} className={`${currentChatId === chat.id ? 'text-cyan-400' : 'text-zinc-600 group-hover:text-zinc-400'} shrink-0 transition-colors`} />
-            <span className={`text-xs truncate ${currentChatId === chat.id ? 'text-cyan-50 font-medium' : 'text-zinc-400 group-hover:text-zinc-300'} transition-colors`}>
-              {chat.title}
-            </span>
-          </button>
-        ))}
+        {chats.map(chat => {
+          const isDeleting = deletingId === chat.id;
+          const isActive = currentChatId === chat.id;
+          
+          return (
+            <div 
+              key={chat.id}
+              className={`w-full rounded-xl flex items-center justify-between transition-all border group/item relative ${
+                isActive ? 'bg-cyan-500/10 border-cyan-500/20' : 'bg-transparent border-transparent hover:bg-white/5'
+              }`}
+            >
+              <button 
+                onClick={() => {
+                  loadChat(chat.id);
+                  setIsMobileNavOpen(false); // Auto-close on mobile after selecting chat
+                }}
+                className="flex-1 min-w-0 pl-3 pr-10 py-3 flex items-center gap-3 cursor-pointer text-left"
+              >
+                <MessageSquare size={14} className={`${isActive ? 'text-cyan-400' : 'text-zinc-600 group-hover/item:text-zinc-400'} shrink-0 transition-colors`} />
+                <span className={`text-xs truncate ${isActive ? 'text-cyan-50 font-medium' : 'text-zinc-400 group-hover/item:text-zinc-300'} transition-colors ${isDeleting ? 'pr-14' : 'pr-6'}`}>
+                  {chat.title}
+                </span>
+              </button>
+              
+              <div className="absolute right-2 flex items-center gap-1 z-10">
+                {isDeleting ? (
+                  <>
+                    <button
+                      onClick={(e) => handleDeleteChat(e, chat.id)}
+                      className="p-1 hover:bg-emerald-500/20 rounded text-emerald-400 transition-colors cursor-pointer"
+                      title="Confirm delete"
+                    >
+                      <Check size={14} />
+                    </button>
+                    <button
+                      onClick={cancelDelete}
+                      className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                      title="Cancel"
+                    >
+                      <X size={14} />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={(e) => initiateDelete(e, chat.id)}
+                    className="p-1 hover:bg-zinc-800 rounded text-zinc-500 hover:text-rose-400 opacity-0 group-hover/item:opacity-100 transition-opacity duration-200 cursor-pointer"
+                    title="Delete Chat"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Bottom Area: ChatGPT Style User Profile Dropdown */}
