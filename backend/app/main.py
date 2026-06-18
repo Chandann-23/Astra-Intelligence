@@ -54,6 +54,7 @@ def read_root():
     }
 
 @app.get("/health")
+@app.head("/health")
 def health():
     """Health check reflecting V2 status"""
     try:
